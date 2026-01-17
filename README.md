@@ -1,5 +1,227 @@
 # NexHacks
 
+# FlowGuard AI — Full Product Context
+
+## What FlowGuard AI is
+FlowGuard AI is a **developer tool** that makes the visual and UX side of applications testable and enforceable, the same way logic and APIs already are.
+
+It validates whether **intended user flows still work visually** across browsers and devices, catches UX regressions early, and can certify real improvements using real-user performance data.
+
+This is not a design tool and not a UX “judge.”  
+It’s a **guardrail** for experience correctness.
+
+---
+
+## The core problem
+Most frontend bugs don’t break functionality — they break **user understanding**.
+
+Common failures:
+- CTAs exist but aren’t visible
+- Forms submit but give no clear feedback
+- Layouts break on mobile or Safari
+- UX degrades quietly while tests pass
+
+Today:
+- Unit tests don’t see UX
+- E2E tests assert selectors, not visibility
+- QA/design feedback arrives late
+- Fixes are subjective and slow
+- Regressions reappear because nothing enforces them
+
+UX correctness is not owned anywhere in the dev lifecycle.
+
+---
+
+## The key insight
+Developers don’t need to be UX experts — they need **fast, objective feedback** when the experience breaks.
+
+Instead of asking:
+> “Is this good UX?”
+
+FlowGuard asks:
+> “Does this change still satisfy the intended user flow, without increasing confusion or failure risk?”
+
+That question *is* testable.
+
+---
+
+## What FlowGuard actually guarantees
+FlowGuard does **not** guarantee:
+- better aesthetics
+- higher delight
+- perfect UX
+
+It **does** guarantee:
+- no silent UX regressions
+- no loss of action visibility
+- no missing confirmation
+- no increase in flow ambiguity
+- no new cross-platform breakage
+
+And when conditions are met, it can also certify **measurable UX improvement**.
+
+---
+
+## How “improvement” is defined (no BS)
+Improvement is **not taste-based**.
+
+A change is considered an improvement only if:
+1. No experience constraints regress, **and**
+2. Real-user performance signals improve
+
+Real-user signals are grounded in the **:contentReference[oaicite:0]{index=0} (CrUX)**:
+- layout stability (CLS)
+- responsiveness (INP)
+- perceived load (LCP)
+
+This makes improvement claims defensible even if the system isn’t perfect.
+
+---
+
+## How the product works (conceptually)
+
+### 1. Intent instead of selectors
+Developers describe what a flow should accomplish in plain language:
+> “User signs up and clearly sees success.”
+
+This is a hypothesis, not truth.
+
+---
+
+### 2. Visual execution
+Agents run the flow visually across:
+- Chromium, Firefox, WebKit
+- desktop + mobile viewports
+
+They check:
+- visibility of primary actions
+- clarity of feedback
+- progress through the flow
+- dead ends or ambiguity
+
+DOM is optional. Vision is primary.
+
+---
+
+### 3. Experience safety
+Every run is compared against:
+- the last known good version
+- other browsers and viewports
+
+If any invariant regresses, the run fails.
+This blocks silent UX degradation.
+
+---
+
+### 4. Evidence-backed improvement
+If safety holds, FlowGuard checks whether:
+- real-user UX metrics improved
+- platform divergence decreased
+
+Only then is a change labeled an improvement.
+
+---
+
+## Why long-context reasoning matters
+UX failures are rarely local.
+They depend on:
+- multiple steps
+- multiple browsers
+- historical behavior
+- prior fixes
+- real-user metrics over time
+
+That’s a **large context problem**.
+
+---
+
+## Why token compression is critical
+FlowGuard assembles a large “run packet” containing:
+- flow intent
+- constraints
+- step summaries across platforms
+- visual descriptions
+- historical diffs
+- CrUX snapshots
+
+This context is compressed using **:contentReference[oaicite:1]{index=1}** before reasoning.
+
+Compression:
+- removes low-signal tokens
+- preserves output quality
+- reduces cost
+- enables reasoning over entire UX timelines
+
+Without compression, FlowGuard would be forced into shallow, brittle analysis.
+
+---
+
+## How DevSwarm fits
+FlowGuard is built the same way it operates: as a swarm.
+
+Using **:contentReference[oaicite:2]{index=2}**:
+- each subsystem is developed in parallel
+- each agent owns a single responsibility
+- branches map directly to runtime components
+
+This enables fast iteration and mirrors the system’s architecture.
+
+---
+
+## What FlowGuard replaces in practice
+Without FlowGuard:
+- UX issues are found late
+- feedback is subjective
+- fixes aren’t enforced
+- regressions repeat
+
+With FlowGuard:
+- UX breaks fail CI
+- evidence is automatic
+- fixes become durable
+- experience correctness becomes enforceable
+
+It removes wasted cycles, not people.
+
+---
+
+## Who this is for
+- Frontend engineers
+- Product teams
+- Design systems
+- Teams shipping UI frequently
+- Orgs without deep UX bandwidth
+
+---
+
+## What FlowGuard is not
+- Not a design generator
+- Not an auto-redesign system
+- Not a UX “score”
+- Not a replacement for designers
+
+It’s a **safety layer**, not an artist.
+
+---
+
+## Why this can be a real business
+Every team ships UI.
+Every team breaks UX accidentally.
+No tool today owns experience regressions.
+
+FlowGuard fits naturally into:
+- CI pipelines
+- frontend teams
+- fast-moving product orgs
+- design systems
+
+Long-term, it becomes standard to ask:
+> “Did we break the experience?”
+
+…and have a real answer.
+
+---
+
 ## Tech stack & architecture
 
 ### Development workflow (DevSwarm)
