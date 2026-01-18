@@ -475,4 +475,12 @@ program
     }
   });
 
+// Add new analytics commands
+import { createTrendsCommand, createSearchCommand, createCostsCommand } from './commands/index.js';
+
+// Register commands
+program.addCommand(createTrendsCommand());
+program.addCommand(createSearchCommand());
+program.addCommand(createCostsCommand());
+
 program.parse();
