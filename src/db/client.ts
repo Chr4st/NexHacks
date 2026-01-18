@@ -22,9 +22,25 @@ export class DatabaseClient {
       if (!uri) {
         throw new Error('MONGODB_URI environment variable is required');
       }
-      this.client = new MongoClient(uri);
+
+      // Validate URI format
+      if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+        throw new Error('Invalid MongoDB URI format');
+      }
+
+      const dbName = process.env.MONGODB_DATABASE || 'flowguard';
+
+      this.client = new MongoClient(uri, {
+        tls: process.env.NODE_ENV === 'production',
+        tlsAllowInvalidCertificates: false,
+        maxPoolSize: 50,
+        minPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000
+      });
+
       await this.client.connect();
-      this.db = this.client.db('flowguard');
+      this.db = this.client.db(dbName);
       console.log('✅ MongoDB connected successfully');
     }
     return this.db;
