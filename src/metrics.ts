@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CruxMetrics } from './types.js';
+import type { CruxMetrics, WoodWideResult } from './types.js';
 
 /**
  * Schema for validating the CrUX API response.
@@ -153,7 +153,7 @@ Core Web Vitals:
  * @returns Wood Wide analysis result or null if unavailable
  */
 export async function getWoodWideAnalysis(
-  metrics: CruxMetrics,
+  _metrics: CruxMetrics,
   useMock = false
 ): Promise<WoodWideResult | null> {
   if (useMock) {

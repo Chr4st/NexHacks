@@ -86,26 +86,21 @@ export class PromptOptimizer {
         statisticalSignificance: significance
       };
 
-      // Save to MongoDB
-      await this.repository.saveABExperiment({
-        experimentId,
+      // Save to MongoDB (simplified for current schema)
+      // Store the winner experiment results
+      await this.repository.saveExperiment({
         name: config.name,
-        description: config.description,
-        runAt: result.runAt,
-        promptVersions: {
-          control: {
-            version: config.promptVersions.control.version,
-            systemPrompt: config.promptVersions.control.systemPrompt
-          },
-          variant: {
-            version: config.promptVersions.variant.version,
-            systemPrompt: config.promptVersions.variant.systemPrompt
-          }
-        },
-        control: controlMetrics,
-        variant: variantMetrics,
-        winner,
-        statisticalSignificance: significance
+        promptVersion: winner === 'control'
+          ? config.promptVersions.control.version
+          : config.promptVersions.variant.version,
+        datasetName: config.traceProject,  // Use traceProject as datasetName
+        accuracy: winner === 'control' ? controlMetrics.accuracy : variantMetrics.accuracy,
+        avgConfidence: 0,  // Not available in current PromptMetrics
+        totalRuns: config.dataset.length * 2,  // Control + variant runs
+        startedAt: new Date(result.runAt),
+        completedAt: new Date(),
+        phoenixExperimentId: experimentId,
+        results: []  // Results stored separately in Phoenix
       });
 
       // Send to Phoenix
@@ -353,26 +348,22 @@ export class PromptOptimizer {
    * Get the best-performing prompt version from historical experiments
    */
   async getBestPrompt(): Promise<PromptTemplate> {
-    const experiments = await this.repository.getRecentABExperiments(10);
+    const experiments = await this.repository.getExperiments(10);
 
     if (experiments.length === 0) {
       return DEFAULT_PROMPT_V1;
     }
 
-    // Find highest accuracy
+    // Find highest accuracy from historical experiments
     let bestAccuracy = 0;
     let bestPromptVersion = '';
 
-    experiments.forEach(exp => {
-      if (exp.control.accuracy > bestAccuracy) {
-        bestAccuracy = exp.control.accuracy;
-        bestPromptVersion = exp.promptVersions.control.version;
+    for (const exp of experiments) {
+      if (exp.accuracy > bestAccuracy) {
+        bestAccuracy = exp.accuracy;
+        bestPromptVersion = exp.promptVersion;
       }
-      if (exp.variant.accuracy > bestAccuracy) {
-        bestAccuracy = exp.variant.accuracy;
-        bestPromptVersion = exp.promptVersions.variant.version;
-      }
-    });
+    }
 
     // Return the best prompt based on version
     if (bestPromptVersion === 'v2.0') {

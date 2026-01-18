@@ -1,5 +1,5 @@
 import { MongoClient, Db } from 'mongodb';
-import { FlowGuardRepository } from '../db/repository';
+import { FlowGuardRepository } from './repository';
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Please add your Mongo URI to .env.local');
