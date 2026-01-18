@@ -9,7 +9,8 @@ import {
   FlowCostSummary,
   UXRisk,
   FlowExecutionDataDocument,
-  FlowExecutionData
+  FlowExecutionData,
+  ABExperiment
 } from './schemas.js';
 import { validateString, validateNumber, validateSearchQuery, escapeRegex } from './validators.js';
 
@@ -37,6 +38,7 @@ export class FlowGuardRepository {
   private experiments: Collection<Experiment>;
   private uxRisks: Collection<UXRisk>;
   private flowExecutions: Collection<FlowExecutionDataDocument>;
+  private abExperiments: Collection<ABExperiment>;
 
   constructor(db: Db) {
     this.testResults = db.collection('test_results');
@@ -46,6 +48,7 @@ export class FlowGuardRepository {
     this.experiments = db.collection('experiments');
     this.uxRisks = db.collection('ux_risks');
     this.flowExecutions = db.collection('flow_executions');
+    this.abExperiments = db.collection('ab_experiments');
   }
 
   // ==================== Test Results ====================
@@ -247,6 +250,22 @@ export class FlowGuardRepository {
       .find()
       .sort({ startedAt: -1 })
       .limit(limit)
+      .toArray();
+  }
+
+  // ==================== A/B Experiments ====================
+
+  async saveABExperiment(experiment: Omit<ABExperiment, '_id'>): Promise<string> {
+    const result = await this.abExperiments.insertOne(experiment as ABExperiment);
+    return result.insertedId.toString();
+  }
+
+  async getRecentABExperiments(limit: number = 10): Promise<ABExperiment[]> {
+    const validLimit = validateNumber(limit, 'limit', 1, 100);
+    return await this.abExperiments
+      .find()
+      .sort({ runAt: -1 })
+      .limit(validLimit)
       .toArray();
   }
 

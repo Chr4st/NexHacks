@@ -8,7 +8,11 @@ const isPublicRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    await auth.protect();
+    const session = await auth();
+    if (!session.userId) {
+      // Redirect to sign-in if not authenticated
+      return Response.redirect(new URL('/sign-in', request.url));
+    }
   }
 });
 

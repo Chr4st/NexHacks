@@ -33,7 +33,7 @@ export function createTrendsCommand(): Command {
         }
 
         // Get database connection
-        const database = await db;
+        const database = await db.connect();
         const repository = new FlowGuardRepository(database);
 
         // Fetch trend data from MongoDB
@@ -120,8 +120,8 @@ export function createTrendsCommand(): Command {
 
           // Trend indicator
           if (trendData.length >= 2) {
-            const recent = trendData[trendData.length - 1];
-            const previous = trendData[trendData.length - 2];
+            const recent = trendData[trendData.length - 1]!;
+            const previous = trendData[trendData.length - 2]!;
             const recentRate = recent.successRate || 0;
             const previousRate = previous.successRate || 0;
             const trend = recentRate - previousRate;
