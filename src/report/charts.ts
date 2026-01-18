@@ -11,23 +11,24 @@ export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
 
   if (data.length === 1) {
     // Single point - show as a horizontal line
+    const point = data[0]!;
     const width = 800;
     const height = 300;
     const padding = 40;
     const yScale = (height - 2 * padding) / 100;
     const x = padding + (width - 2 * padding) / 2;
     // Ensure successRate is a valid number
-    const validRate = isNaN(data[0].successRate) || !isFinite(data[0].successRate) 
-      ? 0 
-      : Math.max(0, Math.min(100, data[0].successRate));
+    const validRate = isNaN(point.successRate) || !isFinite(point.successRate)
+      ? 0
+      : Math.max(0, Math.min(100, point.successRate));
     const y = height - padding - validRate * yScale;
-    
+
     return `
       <svg viewBox="0 0 ${width} ${height}" class="chart-canvas">
         <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#3b82f6" stroke-width="3" stroke-dasharray="5,5" />
         <circle cx="${x}" cy="${y}" r="6" fill="#3b82f6" />
         <text x="${x}" y="${y - 10}" text-anchor="middle" font-size="12" fill="#6b7280">${validRate.toFixed(0)}%</text>
-        <text x="${x}" y="${height - padding + 25}" text-anchor="middle" font-size="11" fill="#6b7280">${data[0].date}</text>
+        <text x="${x}" y="${height - padding + 25}" text-anchor="middle" font-size="11" fill="#6b7280">${point.date}</text>
       </svg>
     `;
   }
@@ -79,7 +80,7 @@ export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
   }).join('');
 
   // Generate data points
-  const dataPoints = points.map((p, i) => {
+  const dataPoints = points.map((p) => {
     const [x, y] = p.split(',').map(Number);
     return `
       <circle

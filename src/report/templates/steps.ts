@@ -16,7 +16,7 @@ function escapeHtml(text: string): string {
  * Generate step-by-step results section
  */
 export function generateSteps(steps: StepResult[]): string {
-  const stepsHtml = steps.map((step, index) => {
+  const stepsHtml = steps.map((step) => {
     const statusClass = step.success ? 'passed' : 'failed';
     const statusText = step.success ? 'PASSED' : 'FAILED';
     const statusIcon = step.success ? '✓' : '✗';

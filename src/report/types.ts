@@ -1,4 +1,4 @@
-import type { FlowRunResult, StepResult, CruxMetrics, WoodWideResult } from '../types.js';
+import type { FlowRunResult, CruxMetrics, WoodWideResult } from '../types.js';
 
 /**
  * Metadata for report generation

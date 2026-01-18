@@ -2,27 +2,28 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createCostsCommand } from '../costs.js';
 import type { FlowCostSummary } from '../../db/schemas.js';
 
-// Mock the database client
+// Create shared mock functions
+const mockGetCostByFlow = vi.fn();
+
+// Mock the database client - db is a DatabaseClient instance with connect() method
 vi.mock('../../db/client.js', () => ({
-  db: Promise.resolve({
-    collection: vi.fn(),
-  }),
+  db: {
+    connect: vi.fn().mockResolvedValue({
+      collection: vi.fn(),
+    }),
+  },
 }));
 
-// Mock the repository
+// Mock the repository with shared mock function
 vi.mock('../../db/repository.js', () => ({
   FlowGuardRepository: vi.fn().mockImplementation(() => ({
-    getCostByFlow: vi.fn(),
+    getCostByFlow: mockGetCostByFlow,
   })),
 }));
 
 describe('Costs Command', () => {
-  let mockRepository: any;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    const { FlowGuardRepository } = await import('../../db/repository.js');
-    mockRepository = new FlowGuardRepository({} as any);
   });
 
   it('should create a costs command', () => {
@@ -33,17 +34,17 @@ describe('Costs Command', () => {
 
   it('should handle empty cost data', async () => {
     const command = createCostsCommand();
-    mockRepository.getCostByFlow.mockResolvedValue([]);
+    mockGetCostByFlow.mockResolvedValue([]);
 
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await command.parseAsync(['costs', '--format', 'json']);
+      await command.parseAsync(['node', 'test', '--format', 'json']);
     } catch {
       // Command may exit, that's okay
     }
 
-    expect(mockRepository.getCostByFlow).toHaveBeenCalled();
+    expect(mockGetCostByFlow).toHaveBeenCalled();
     consoleLogSpy.mockRestore();
   });
 
@@ -57,19 +58,19 @@ describe('Costs Command', () => {
       },
     ];
 
-    mockRepository.getCostByFlow.mockResolvedValue(mockCostData);
+    mockGetCostByFlow.mockResolvedValue(mockCostData);
 
     const command = createCostsCommand();
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await command.parseAsync(['costs', '--start', '7d', '--format', 'json']);
+      await command.parseAsync(['node', 'test', '--start', '7d', '--format', 'json']);
     } catch {
       // Command may exit, that's okay
     }
 
-    expect(mockRepository.getCostByFlow).toHaveBeenCalled();
-    const callArgs = mockRepository.getCostByFlow.mock.calls[0];
+    expect(mockGetCostByFlow).toHaveBeenCalled();
+    const callArgs = mockGetCostByFlow.mock.calls[0];
     expect(callArgs[0]).toBeInstanceOf(Date);
     expect(callArgs[1]).toBeInstanceOf(Date);
     consoleLogSpy.mockRestore();
@@ -80,7 +81,7 @@ describe('Costs Command', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     try {
-      await command.parseAsync(['costs', '--start', 'invalid-date', '--format', 'json']);
+      await command.parseAsync(['node', 'test', '--start', 'invalid-date', '--format', 'json']);
     } catch {
       // Should exit with error
     }
@@ -105,18 +106,18 @@ describe('Costs Command', () => {
       },
     ];
 
-    mockRepository.getCostByFlow.mockResolvedValue(mockCostData);
+    mockGetCostByFlow.mockResolvedValue(mockCostData);
 
     const command = createCostsCommand();
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await command.parseAsync(['costs', '--format', 'json']);
+      await command.parseAsync(['node', 'test', '--format', 'json']);
     } catch {
       // Command may exit, that's okay
     }
 
-    expect(mockRepository.getCostByFlow).toHaveBeenCalled();
+    expect(mockGetCostByFlow).toHaveBeenCalled();
     consoleLogSpy.mockRestore();
   });
 });

@@ -54,7 +54,7 @@ export function createCostsCommand(): Command {
         }
 
         // Get database connection
-        const database = await db;
+        const database = await db.connect();
         const repository = new FlowGuardRepository(database);
 
         // Fetch cost data

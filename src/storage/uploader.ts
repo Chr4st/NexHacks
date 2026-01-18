@@ -46,7 +46,7 @@ export class UploadManager {
 
       // Extract step number from filename (e.g., "step-1-screenshot.png")
       const match = file.match(/step-(\d+)/);
-      const stepNumber = match ? parseInt(match[1], 10) : 0;
+      const stepNumber = match && match[1] ? parseInt(match[1], 10) : 0;
 
       try {
         const url = await this.storage.uploadScreenshot(filePath, flowName, stepNumber);

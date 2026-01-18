@@ -19,7 +19,7 @@
 
 ### 1. Get API Keys Ready
 
-Create a file: `.env.christ` with:
+Create a file: `.env` with:
 
 ```bash
 # Required
