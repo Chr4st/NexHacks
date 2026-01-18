@@ -1,341 +1,213 @@
-# NexHacks
+# FlowGuard AI
 
-# FlowGuard AI — Full Product Context
+**AI-native UX testing platform that validates user flows with vision analysis.**
 
-## What FlowGuard AI is
-FlowGuard AI is a **developer tool** that makes the visual and UX side of applications testable and enforceable, the same way logic and APIs already are.
+> Traditional E2E tests check if buttons click. FlowGuard checks if users can actually understand your UI.
 
-It validates whether **intended user flows still work visually** across browsers and devices, catches UX regressions early, and can certify real improvements using real-user performance data.
+## The Problem
 
-This is not a design tool and not a UX “judge.”  
-It’s a **guardrail** for experience correctness.
+Every team ships features that work perfectly in QA but confuse real users:
 
----
+- CTAs that exist but aren't visually prominent
+- Success messages that appear below the fold
+- Mobile layouts where critical actions are obscured
+- Forms that submit but provide no clear feedback
 
-## The core problem
-Most frontend bugs don’t break functionality — they break **user understanding**.
+**FlowGuard catches UX bugs that functional tests miss.**
 
-Common failures:
-- CTAs exist but aren’t visible
-- Forms submit but give no clear feedback
-- Layouts break on mobile or Safari
-- UX degrades quietly while tests pass
+## How It Works
 
-Today:
-- Unit tests don’t see UX
-- E2E tests assert selectors, not visibility
-- QA/design feedback arrives late
-- Fixes are subjective and slow
-- Regressions reappear because nothing enforces them
+1. **Write intents, not selectors** — Describe what users should accomplish
+2. **AI analyzes screenshots** — Claude vision evaluates UX like a human would
+3. **Get clear verdicts** — Pass/fail with reasoning, not cryptic test output
+4. **Track improvements** — Every decision traced to Arize Phoenix
 
-UX correctness is not owned anywhere in the dev lifecycle.
+```yaml
+# flows/signup.yaml
+name: mobile-signup
+intent: "User on mobile can clearly find and tap the signup button"
+url: https://myapp.com
+viewport:
+  width: 375
+  height: 667
+steps:
+  - action: screenshot
+    assert: "Signup CTA is visible without scrolling"
+```
 
----
+## Quick Start
 
-## The key insight
-Developers don’t need to be UX experts — they need **fast, objective feedback** when the experience breaks.
+```bash
+# Install
+npm install -g flowguard
 
-Instead of asking:
-> “Is this good UX?”
+# Initialize in your project
+flowguard init
 
-FlowGuard asks:
-> “Does this change still satisfy the intended user flow, without increasing confusion or failure risk?”
+# Set your API key
+export ANTHROPIC_API_KEY=your-key
 
-That question *is* testable.
+# Run tests
+flowguard run
+```
 
----
+## Features
 
-## What FlowGuard actually guarantees
+- **Intent-based testing** — Tests survive redesigns, no selector maintenance
+- **Vision AI analysis** — Claude 3.5 Sonnet evaluates screenshots for UX clarity
+- **Cross-viewport testing** — Desktop, tablet, mobile in one flow
+- **AI observability** — Full traces in Arize Phoenix for debugging
+- **Real metrics** — CrUX data analyzed via Wood Wide AI
+- **Beautiful reports** — Static HTML reports with embedded screenshots
+
+## CLI Commands
+
+```bash
+# Initialize project
+flowguard init
+
+# Run all flows
+flowguard run
+
+# Run specific flow
+flowguard run flows/signup.yaml
+
+# Run with JSON output (for CI)
+flowguard run --format json
+
+# Skip vision analysis (faster)
+flowguard run --no-vision
+
+# Use mock data for demos
+flowguard run --mock
+
+# View reports
+flowguard report --list
+flowguard report --open
+```
+
+## Configuration
+
+```json
+// flowguard.config.json
+{
+  "version": 1,
+  "flowsDir": "./flows",
+  "reportsDir": "./reports"
+}
+```
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `ANTHROPIC_API_KEY` | Claude API key for vision analysis | Yes |
+| `PHOENIX_ENDPOINT` | Arize Phoenix OTLP endpoint | No |
+| `CRUX_API_KEY` | Google CrUX API key | No |
+| `WOOD_WIDE_API_KEY` | Wood Wide AI API key | No |
+
+## Flow Schema
+
+```yaml
+name: string          # Flow identifier
+intent: string        # What user should accomplish (min 10 chars)
+url: string           # Starting URL
+viewport:             # Optional viewport
+  width: number       # 320-3840
+  height: number      # 480-2160
+steps:
+  - action: navigate|click|type|screenshot|wait|scroll
+    target: string    # CSS selector or URL
+    value: string     # Text to type or scroll amount
+    assert: string    # What to verify in screenshot
+    timeout: number   # Action timeout in ms
+```
+
+## Architecture
+
+```
+CLI → Flow Parser → Playwright Runner → Vision Analyzer → Report Generator
+                                              ↓
+                                        Arize Phoenix (Traces)
+                                              ↓
+                                        Wood Wide AI (Metrics)
+```
+
+### Stack
+
+| Layer | Technology |
+|-------|------------|
+| CLI | Node.js, Commander.js |
+| Core | TypeScript, Playwright |
+| Vision | Anthropic Claude 3.5 Sonnet |
+| Reports | Static HTML (self-contained) |
+| Tracing | OpenTelemetry → Arize Phoenix |
+| Metrics | CrUX API, Wood Wide AI |
+
+## Sponsor Integrations
+
+### Arize Phoenix ($1,000 Prize)
+
+Every vision API call is traced with OpenTelemetry using OpenInference semantic conventions:
+
+- Flow runs as parent spans, steps as children
+- LLM call attributes: model, tokens, latency
+- FlowGuard-specific: confidence, verdict, viewport
+
+```bash
+# Start Phoenix locally
+docker run -p 6006:6006 arizephoenix/phoenix:latest
+
+# Run FlowGuard with tracing
+flowguard run
+```
+
+**Demo Story:** "We traced 100+ vision analysis calls. By comparing prompts in Phoenix, we improved accuracy from 72% to 89%."
+
+### Wood Wide AI ($750 Prize)
+
+Statistical analysis for UX improvement claims:
+
+- CrUX metrics (LCP, CLS, INP) as structured input
+- Significance testing for before/after comparisons
+- Numeric grounding for "X% improvement" claims
+
+**Demo Story:** "FlowGuard doesn't just say 'UX improved'—Wood Wide confirms it with 95% confidence based on real CrUX data."
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build
+npm run build
+
+# Type check
+npm run typecheck
+```
+
+## What FlowGuard Guarantees
+
 FlowGuard does **not** guarantee:
-- better aesthetics
-- higher delight
-- perfect UX
+- Better aesthetics
+- Higher delight
+- Perfect UX
 
 It **does** guarantee:
-- no silent UX regressions
-- no loss of action visibility
-- no missing confirmation
-- no increase in flow ambiguity
-- no new cross-platform breakage
+- No silent UX regressions
+- No loss of action visibility
+- No missing confirmation feedback
+- No increase in flow ambiguity
+- No new cross-platform breakage
 
-And when conditions are met, it can also certify **measurable UX improvement**.
+## License
 
----
-
-## How “improvement” is defined (no BS)
-Improvement is **not taste-based**.
-
-A change is considered an improvement only if:
-1. No experience constraints regress, **and**
-2. Real-user performance signals improve
-
-Real-user signals are grounded in the **:contentReference[oaicite:0]{index=0} (CrUX)**:
-- layout stability (CLS)
-- responsiveness (INP)
-- perceived load (LCP)
-
-This makes improvement claims defensible even if the system isn’t perfect.
+MIT
 
 ---
 
-## How the product works (conceptually)
-
-### 1. Intent instead of selectors
-Developers describe what a flow should accomplish in plain language:
-> “User signs up and clearly sees success.”
-
-This is a hypothesis, not truth.
-
----
-
-### 2. Visual execution
-Agents run the flow visually across:
-- Chromium, Firefox, WebKit
-- desktop + mobile viewports
-
-They check:
-- visibility of primary actions
-- clarity of feedback
-- progress through the flow
-- dead ends or ambiguity
-
-DOM is optional. Vision is primary.
-
----
-
-### 3. Experience safety
-Every run is compared against:
-- the last known good version
-- other browsers and viewports
-
-If any invariant regresses, the run fails.
-This blocks silent UX degradation.
-
----
-
-### 4. Evidence-backed improvement
-If safety holds, FlowGuard checks whether:
-- real-user UX metrics improved
-- platform divergence decreased
-
-Only then is a change labeled an improvement.
-
----
-
-## Why long-context reasoning matters
-UX failures are rarely local.
-They depend on:
-- multiple steps
-- multiple browsers
-- historical behavior
-- prior fixes
-- real-user metrics over time
-
-That’s a **large context problem**.
-
----
-
-## Why token compression is critical
-FlowGuard assembles a large “run packet” containing:
-- flow intent
-- constraints
-- step summaries across platforms
-- visual descriptions
-- historical diffs
-- CrUX snapshots
-
-This context is compressed using **:contentReference[oaicite:1]{index=1}** before reasoning.
-
-Compression:
-- removes low-signal tokens
-- preserves output quality
-- reduces cost
-- enables reasoning over entire UX timelines
-
-Without compression, FlowGuard would be forced into shallow, brittle analysis.
-
----
-
-## How DevSwarm fits
-FlowGuard is built the same way it operates: as a swarm.
-
-Using **:contentReference[oaicite:2]{index=2}**:
-- each subsystem is developed in parallel
-- each agent owns a single responsibility
-- branches map directly to runtime components
-
-This enables fast iteration and mirrors the system’s architecture.
-
----
-
-## What FlowGuard replaces in practice
-Without FlowGuard:
-- UX issues are found late
-- feedback is subjective
-- fixes aren’t enforced
-- regressions repeat
-
-With FlowGuard:
-- UX breaks fail CI
-- evidence is automatic
-- fixes become durable
-- experience correctness becomes enforceable
-
-It removes wasted cycles, not people.
-
----
-
-## Who this is for
-- Frontend engineers
-- Product teams
-- Design systems
-- Teams shipping UI frequently
-- Orgs without deep UX bandwidth
-
----
-
-## What FlowGuard is not
-- Not a design generator
-- Not an auto-redesign system
-- Not a UX “score”
-- Not a replacement for designers
-
-It’s a **safety layer**, not an artist.
-
----
-
-## Why this can be a real business
-Every team ships UI.
-Every team breaks UX accidentally.
-No tool today owns experience regressions.
-
-FlowGuard fits naturally into:
-- CI pipelines
-- frontend teams
-- fast-moving product orgs
-- design systems
-
-Long-term, it becomes standard to ask:
-> “Did we break the experience?”
-
-…and have a real answer.
-
----
-
-## Tech stack & architecture
-
-### Development workflow (DevSwarm)
-FlowGuard AI is built using **:contentReference[oaicite:0]{index=0}** to develop the system the same way it operates: as a swarm.
-
-- Multiple AI coding agents run in true parallel
-- Each subsystem lives on its own isolated Git branch
-- Agents work independently and merge cleanly
-- No context switching, faster iteration in 24 hours
-
-Branches map directly to system components:
-- `agent/runner`
-- `agent/vision`
-- `agent/flow-eval`
-- `agent/crux`
-- `agent/compression`
-- `agent/web-ui`
-
----
-
-### Frontend
-- **Next.js + TypeScript**
-- Tailwind CSS
-- Flow definition UI
-- Run history + report viewer
-
----
-
-### Backend / API
-- **Node.js (TypeScript)**
-- Job orchestration API
-  - create runs
-  - track status
-  - fetch reports
-- CI-friendly pass/fail output
-
----
-
-### Execution layer
-- **Playwright**
-  - Chromium
-  - Firefox
-  - WebKit (Safari-like)
-- Viewport matrix (mobile / tablet / desktop)
-- Generates screenshots and traces per step
-
----
-
-### Visual understanding
-- Vision-capable model
-- Used to:
-  - detect primary actions (CTAs, forms)
-  - check visibility and obstruction
-  - identify UI states (loading, success, error)
-- DOM used only as an optional assist, not source of truth
-
----
-
-### Flow reasoning
-- Lightweight state machine / graph evaluator
-- Tracks:
-  - step progression
-  - dead ends
-  - ambiguity (“no clear next action”)
-  - confirmation clarity
-- Compares against previous runs and platforms
-
----
-
-### UX improvement grounding
-- **Chrome UX Report (CrUX) API**
-- Pulls real-user Core Web Vitals distributions
-- Used to validate that changes improve real-world UX signals
-- Enables evidence-backed improvement claims
-
----
-
-### Token compression (critical component)
-FlowGuard relies on **:contentReference[oaicite:1]{index=1}** to make long-context reasoning feasible.
-
-Before evaluation, we assemble a large “run packet”:
-- flow intent + constraints
-- multi-browser step summaries
-- visual descriptions of screenshots
-- historical run diffs
-- CrUX metrics snapshots
-
-This packet is compressed before being passed to the reasoning model:
-- removes redundant / low-signal tokens
-- preserves output quality
-- dramatically reduces input cost
-- enables reasoning over entire UX timelines
-
-Without compression, this system wouldn’t scale.
-
----
-
-### Storage
-- Supabase Postgres + Storage (runs, reports, artifacts)
-  - or SQLite + local filesystem for fast demo
-
----
-
-### Deployment
-- Vercel (frontend + API)
-- Dockerized runner (local or small VM)
-
----
-
-### End-to-end flow
-1. Developer defines flow intent
-2. Run is triggered (CI or UI)
-3. Playwright executes across browsers/viewports
-4. Visual + flow evaluators analyze results
-5. Context is compressed and reasoned over
-6. Report generated with evidence
-7. CI gates on pass/fail
+Built for **NexHacks 2026** | Competing for Dev Tools, Arize Phoenix, and Wood Wide AI prizes

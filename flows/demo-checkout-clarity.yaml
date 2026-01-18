@@ -1,0 +1,12 @@
+# FlowGuard Demo: Checkout Flow Clarity
+# This flow tests whether checkout process is clear to users
+
+name: checkout-clarity
+intent: "User can clearly understand the checkout process and see all costs before purchase"
+url: https://example.com
+viewport:
+  width: 1280
+  height: 720
+steps:
+  - action: screenshot
+    assert: "The checkout button and total price are clearly visible with no hidden costs"
