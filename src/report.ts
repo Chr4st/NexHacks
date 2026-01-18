@@ -1,7 +1,14 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { FlowRunResult, StepResult, CruxMetrics } from './types.js';
+import type { FlowRunResult, StepResult, CruxMetrics, WoodWideResult } from './types.js';
 import { validateOutputDirectory, validatePath } from './security.js';
+import { generateModernReport } from './report/generator.js';
+
+export interface ReportGeneratorOptions {
+  useModernReport?: boolean;
+  historicalData?: FlowRunResult[];
+  woodWideInsights?: WoodWideResult;
+}
 
 /**
  * Convert step result to HTML.
@@ -91,9 +98,26 @@ function cruxToHtml(metrics: CruxMetrics): string {
  *
  * @param run - Flow run result
  * @param cruxMetrics - Optional CrUX metrics
+ * @param options - Optional report generation options
  * @returns HTML string
  */
-export function generateReport(run: FlowRunResult, cruxMetrics?: CruxMetrics): string {
+export function generateReport(
+  run: FlowRunResult,
+  cruxMetrics?: CruxMetrics,
+  options?: ReportGeneratorOptions
+): string {
+  // Use modern report generator by default, unless explicitly disabled
+  const useModern = options?.useModernReport !== false;
+
+  if (useModern) {
+    return generateModernReport(run, {
+      historicalData: options?.historicalData,
+      cruxMetrics,
+      woodWideInsights: options?.woodWideInsights,
+    });
+  }
+
+  // Legacy report generation
   const verdictIcon = run.verdict === 'pass' ? '✅' : run.verdict === 'fail' ? '❌' : '⚠️';
   const stepsHtml = run.steps.map(stepToHtml).join('');
   const cruxHtml = cruxMetrics ? cruxToHtml(cruxMetrics) : '';

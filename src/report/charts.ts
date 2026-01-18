@@ -11,6 +11,7 @@ export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
 
   if (data.length === 1) {
     // Single point - show as a horizontal line
+    const point = data[0]!;
     const width = 800;
     const height = 300;
     const padding = 40;

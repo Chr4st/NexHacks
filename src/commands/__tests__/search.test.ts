@@ -2,27 +2,28 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createSearchCommand } from '../search.js';
 import type { FlowDefinition } from '../../db/schemas.js';
 
-// Mock the database client
+// Create shared mock functions
+const mockSearchFlowsByIntent = vi.fn();
+
+// Mock the database client - db is a DatabaseClient instance with connect() method
 vi.mock('../../db/client.js', () => ({
-  db: Promise.resolve({
-    collection: vi.fn(),
-  }),
+  db: {
+    connect: vi.fn().mockResolvedValue({
+      collection: vi.fn(),
+    }),
+  },
 }));
 
-// Mock the repository
+// Mock the repository with shared mock function
 vi.mock('../../db/repository.js', () => ({
   FlowGuardRepository: vi.fn().mockImplementation(() => ({
-    searchFlowsByIntent: vi.fn(),
+    searchFlowsByIntent: mockSearchFlowsByIntent,
   })),
 }));
 
 describe('Search Command', () => {
-  let mockRepository: any;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    const { FlowGuardRepository } = await import('../../db/repository.js');
-    mockRepository = new FlowGuardRepository({} as any);
   });
 
   it('should create a search command', () => {
@@ -33,17 +34,17 @@ describe('Search Command', () => {
 
   it('should handle empty search results', async () => {
     const command = createSearchCommand();
-    mockRepository.searchFlowsByIntent.mockResolvedValue([]);
+    mockSearchFlowsByIntent.mockResolvedValue([]);
 
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await command.parseAsync(['search', 'nonexistent', '--format', 'json']);
+      await command.parseAsync(['node', 'test', 'nonexistent', '--format', 'json']);
     } catch {
       // Command may exit, that's okay
     }
 
-    expect(mockRepository.searchFlowsByIntent).toHaveBeenCalledWith('nonexistent');
+    expect(mockSearchFlowsByIntent).toHaveBeenCalledWith('nonexistent');
     consoleLogSpy.mockRestore();
   });
 
@@ -60,18 +61,18 @@ describe('Search Command', () => {
       },
     ];
 
-    mockRepository.searchFlowsByIntent.mockResolvedValue(mockFlows);
+    mockSearchFlowsByIntent.mockResolvedValue(mockFlows);
 
     const command = createSearchCommand();
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await command.parseAsync(['search', 'test', '--format', 'json']);
+      await command.parseAsync(['node', 'test', 'test', '--format', 'json']);
     } catch {
       // Command may exit, that's okay
     }
 
-    expect(mockRepository.searchFlowsByIntent).toHaveBeenCalledWith('test');
+    expect(mockSearchFlowsByIntent).toHaveBeenCalledWith('test');
     consoleLogSpy.mockRestore();
   });
 
@@ -80,7 +81,7 @@ describe('Search Command', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     try {
-      await command.parseAsync(['search', 'test', '--limit', '200', '--format', 'json']);
+      await command.parseAsync(['node', 'test', 'test', '--limit', '200', '--format', 'json']);
     } catch {
       // Should exit with error
     }

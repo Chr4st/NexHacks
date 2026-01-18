@@ -96,7 +96,7 @@ export class UploadManager {
     try {
       const urlObj = new URL(url);
       key = urlObj.pathname.slice(1); // Remove leading slash
-      
+
       // Validate key is not empty
       if (!key || key.trim().length === 0) {
         throw new Error(`Invalid key extracted from URL: ${url}`);
@@ -108,4 +108,3 @@ export class UploadManager {
     return await this.storage.getSignedUrl(key, expiresIn);
   }
 }
-

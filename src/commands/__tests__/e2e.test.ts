@@ -14,8 +14,8 @@ describe('CLI Commands E2E Tests', () => {
       expect(command.name()).toBe('trends');
       expect(command.description()).toContain('historical success rate trends');
       
-      // Check for required argument
-      const args = command.args;
+      // Check for required argument (Commander.js uses registeredArguments)
+      const args = command.registeredArguments;
       expect(args.length).toBeGreaterThan(0);
     });
 
@@ -44,8 +44,8 @@ describe('CLI Commands E2E Tests', () => {
       expect(command.name()).toBe('search');
       expect(command.description()).toContain('Search flows');
       
-      // Check for required argument
-      const args = command.args;
+      // Check for required argument (Commander.js uses registeredArguments)
+      const args = command.registeredArguments;
       expect(args.length).toBeGreaterThan(0);
     });
 
