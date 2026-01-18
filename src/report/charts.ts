@@ -4,12 +4,36 @@ import type { TrendDataPoint } from './types.js';
  * Generate SVG chart for success rate trends
  */
 export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
+  // Handle edge cases
+  if (data.length === 0) {
+    return '<svg viewBox="0 0 800 300" class="chart-canvas"><text x="400" y="150" text-anchor="middle" fill="#6b7280">No data available</text></svg>';
+  }
+
+  if (data.length === 1) {
+    // Single point - show as a horizontal line
+    const width = 800;
+    const height = 300;
+    const padding = 40;
+    const yScale = (height - 2 * padding) / 100;
+    const x = padding + (width - 2 * padding) / 2;
+    const y = height - padding - data[0].successRate * yScale;
+    
+    return `
+      <svg viewBox="0 0 ${width} ${height}" class="chart-canvas">
+        <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#3b82f6" stroke-width="3" stroke-dasharray="5,5" />
+        <circle cx="${x}" cy="${y}" r="6" fill="#3b82f6" />
+        <text x="${x}" y="${y - 10}" text-anchor="middle" font-size="12" fill="#6b7280">${data[0].successRate.toFixed(0)}%</text>
+        <text x="${x}" y="${height - padding + 25}" text-anchor="middle" font-size="11" fill="#6b7280">${data[0].date}</text>
+      </svg>
+    `;
+  }
+
   const width = 800;
   const height = 300;
   const padding = 40;
 
   // Calculate scales
-  const xScale = data.length > 1 ? (width - 2 * padding) / (data.length - 1) : 0;
+  const xScale = (width - 2 * padding) / (data.length - 1);
   const yScale = (height - 2 * padding) / 100;
 
   // Generate path
