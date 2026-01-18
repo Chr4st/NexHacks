@@ -132,3 +132,21 @@ export interface ExperimentResult {
   confidence: number;
   correct: boolean;
 }
+
+// ==================== Aggregation Result Types ====================
+// Used for typed aggregation pipeline results
+
+export interface SuccessRateTrendPoint {
+  date: string;
+  successRate: number;
+  avgConfidence: number;
+  avgDuration: number;
+  totalRuns: number;
+}
+
+export interface FlowCostSummary {
+  _id: string;
+  totalCost: number;
+  totalTokens: number;
+  totalRuns: number;
+}
