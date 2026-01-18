@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Navbar } from '@/components/dashboard/navbar';
+import { Toaster } from 'sonner';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
@@ -16,6 +17,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <Toaster position="top-right" richColors />
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">

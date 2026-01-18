@@ -1,35 +1,32 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getRepository } from '@/lib/mongodb';
 
 export async function GET() {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // TODO: Replace with real MongoDB queries
-    const mockReports = [
-      {
-        id: '1',
-        flowName: 'Checkout Flow',
-        status: 'pass',
-        completedAt: new Date(Date.now() - 3600000).toISOString(),
-        duration: 3200,
-        steps: { total: 5, passed: 5, failed: 0 },
-      },
-      {
-        id: '2',
-        flowName: 'Login Flow',
-        status: 'fail',
-        completedAt: new Date(Date.now() - 7200000).toISOString(),
-        duration: 1800,
-        steps: { total: 3, passed: 2, failed: 1 },
-      },
-    ];
+    const repository = await getRepository();
+    const results = await repository.getRecentResultsByTenant(userId, 20);
 
-    return NextResponse.json({ reports: mockReports });
+    const reports = results.map(result => ({
+      id: result._id?.toString(),
+      flowName: result.flowName,
+      status: result.success ? 'pass' : 'fail',
+      completedAt: result.timestamp.toISOString(),
+      duration: result.duration,
+      steps: {
+        total: result.stepResults?.length || 0,
+        passed: result.stepResults?.filter(s => s.success).length || 0,
+        failed: result.stepResults?.filter(s => !s.success).length || 0,
+      },
+    }));
+
+    return NextResponse.json({ reports });
   } catch (error) {
     console.error('Error fetching reports:', error);
     return NextResponse.json(

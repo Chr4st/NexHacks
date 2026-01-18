@@ -1,32 +1,38 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getRepository } from '@/lib/mongodb';
 
 export async function GET() {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // TODO: Replace with real MongoDB aggregation queries
-    const mockAnalytics = {
-      totalRuns: 145,
-      successRate: 87,
-      totalCost: 12.45,
-      avgConfidence: 89,
-      trends: [
-        { date: '2026-01-12', successRate: 85, runs: 20 },
-        { date: '2026-01-13', successRate: 87, runs: 22 },
-        { date: '2026-01-14', successRate: 88, runs: 25 },
-        { date: '2026-01-15', successRate: 86, runs: 18 },
-        { date: '2026-01-16', successRate: 89, runs: 24 },
-        { date: '2026-01-17', successRate: 87, runs: 21 },
-        { date: '2026-01-18', successRate: 90, runs: 15 },
-      ],
+    const repository = await getRepository();
+
+    // Get tenant usage summary
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+    const summary = await repository.getTenantUsageSummary(userId, startDate, endDate);
+
+    // Get success rate trends (last 7 days)
+    const trends = await repository.getSuccessRateTrendByTenant(userId, 7);
+
+    const analytics = {
+      totalRuns: summary.totalRuns,
+      successRate: Math.round(summary.successRate),
+      totalCost: summary.totalCost,
+      avgConfidence: summary.avgConfidence,
+      trends: trends.map(t => ({
+        date: t.date,
+        successRate: Math.round(t.successRate),
+        runs: t.totalRuns,
+      })),
     };
 
-    return NextResponse.json(mockAnalytics);
+    return NextResponse.json(analytics);
   } catch (error) {
     console.error('Error fetching analytics:', error);
     return NextResponse.json(

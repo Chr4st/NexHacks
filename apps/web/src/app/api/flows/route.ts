@@ -5,35 +5,15 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET() {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // For now, use mock data until MongoDB is fully integrated
-    // TODO: Replace with real MongoDB queries
-    const mockFlows = [
-      {
-        id: '1',
-        name: 'Checkout Flow',
-        intent: 'User can successfully complete checkout',
-        status: 'passing',
-        lastRun: new Date().toISOString(),
-        successRate: 95,
-        totalRuns: 20,
-      },
-      {
-        id: '2',
-        name: 'Login Flow',
-        intent: 'User can log in successfully',
-        status: 'failing',
-        lastRun: new Date().toISOString(),
-        successRate: 70,
-        totalRuns: 15,
-      },
-    ];
+    const repository = await getRepository();
+    const flows = await repository.getDashboardFlows(userId);
 
-    return NextResponse.json({ flows: mockFlows });
+    return NextResponse.json({ flows });
   } catch (error) {
     console.error('Error fetching flows:', error);
     return NextResponse.json(
@@ -46,17 +26,39 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    
-    // TODO: Validate with Zod schema
-    // TODO: Save to MongoDB
-    
-    return NextResponse.json({ id: 'new-flow-id', ...body });
+    const { name, intent, url, viewport, steps } = body;
+
+    // Basic validation
+    if (!name || !intent || !steps || steps.length === 0) {
+      return NextResponse.json(
+        { error: 'Missing required fields: name, intent, and steps' },
+        { status: 400 }
+      );
+    }
+
+    const repository = await getRepository();
+    const flowId = await repository.saveFlowForTenant(userId, {
+      name,
+      intent,
+      url: url || '',
+      viewport,
+      steps: steps.map((step: any) => ({
+        action: step.action,
+        target: step.target || '',
+        value: step.value,
+        assert: step.assert,
+        timeout: step.timeout,
+      })),
+      tenantId: userId,
+    });
+
+    return NextResponse.json({ id: flowId, success: true });
   } catch (error) {
     console.error('Error creating flow:', error);
     return NextResponse.json(
