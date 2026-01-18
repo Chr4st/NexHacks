@@ -22,6 +22,99 @@ export async function setupDatabase(db: Db): Promise<void> {
     }
   }
 
+  // Create vision_cache collection with schema validation
+  try {
+    await db.createCollection('vision_cache', {
+      validator: {
+        $jsonSchema: {
+          bsonType: 'object',
+          required: ['screenshotHash', 'assertion', 'model', 'verdict', 'confidence'],
+          properties: {
+            screenshotHash: { bsonType: 'string', minLength: 1 },
+            assertion: { bsonType: 'string', minLength: 1 },
+            model: { bsonType: 'string' },
+            verdict: { bsonType: 'bool' },
+            confidence: { bsonType: 'number', minimum: 0, maximum: 100 },
+            tokens: {
+              bsonType: 'object',
+              required: ['input', 'output'],
+              properties: {
+                input: { bsonType: 'number', minimum: 0 },
+                output: { bsonType: 'number', minimum: 0 }
+              }
+            },
+            cost: { bsonType: 'number', minimum: 0 },
+            hitCount: { bsonType: 'number', minimum: 0 }
+          }
+        }
+      },
+      validationAction: 'error'
+    });
+    console.log('✅ Created vision_cache collection with schema validation');
+  } catch (error: any) {
+    if (error.code === 48) {
+      console.log('ℹ️  Vision cache collection already exists');
+    } else {
+      throw error;
+    }
+  }
+
+  // Create flow_definitions collection with schema validation
+  try {
+    await db.createCollection('flow_definitions', {
+      validator: {
+        $jsonSchema: {
+          bsonType: 'object',
+          required: ['name', 'intent', 'url', 'steps'],
+          properties: {
+            name: { bsonType: 'string', minLength: 1 },
+            intent: { bsonType: 'string', minLength: 1 },
+            url: { bsonType: 'string', minLength: 1 },
+            steps: { bsonType: 'array' },
+            tags: { bsonType: 'array' },
+            critical: { bsonType: 'bool' }
+          }
+        }
+      },
+      validationAction: 'error'
+    });
+    console.log('✅ Created flow_definitions collection with schema validation');
+  } catch (error: any) {
+    if (error.code === 48) {
+      console.log('ℹ️  Flow definitions collection already exists');
+    } else {
+      throw error;
+    }
+  }
+
+  // Create usage_events collection with schema validation
+  try {
+    await db.createCollection('usage_events', {
+      validator: {
+        $jsonSchema: {
+          bsonType: 'object',
+          required: ['eventType', 'timestamp'],
+          properties: {
+            eventType: {
+              bsonType: 'string',
+              enum: ['flow_run', 'vision_call', 'cache_hit', 'cache_miss']
+            },
+            cost: { bsonType: 'number', minimum: 0 },
+            tokens: { bsonType: 'number', minimum: 0 }
+          }
+        }
+      },
+      validationAction: 'error'
+    });
+    console.log('✅ Created usage_events collection with schema validation');
+  } catch (error: any) {
+    if (error.code === 48) {
+      console.log('ℹ️  Usage events collection already exists');
+    } else {
+      throw error;
+    }
+  }
+
   // Create indexes
   const indexPromises = [
     // Test results indexes
