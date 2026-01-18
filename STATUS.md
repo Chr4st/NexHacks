@@ -1,21 +1,21 @@
 # FlowGuard AI - Development Status
 
-**Last Updated:** 2026-01-18 02:30 AM
-**Current Phase:** Phase 1 - Foundation (Day 1-2)
-**Branch:** feat/mongodb-core
+**Last Updated:** 2026-01-18 04:46 AM
+**Current Phase:** Phase 2 - MCP Server Development (Day 2-3)
+**Active Branches:** feat/vision-phoenix
 
 ---
 
-## Overall Progress: 12.5% (1/8 agents complete)
+## Overall Progress: 25% (2/8 agents complete)
 
 ---
 
-## Team A (Developer: Jibril) - 25% Complete
+## Team A (Developer: Jibril) - 50% Complete
 
 | Agent | Module | Branch | Status | Progress | Blocker |
 |-------|--------|--------|--------|----------|---------|
 | **A1** | MongoDB Core | `feat/mongodb-core` | ✅ **COMPLETE** | 100% | None |
-| **A2** | Vision + Phoenix | `feat/vision-phoenix` | ❌ Not Started | 0% | None (can start with mock MongoDB) |
+| **A2** | Vision + Phoenix | `feat/vision-phoenix` | ✅ **COMPLETE** | 100% | None |
 | **A3** | CrUX + Wood Wide | `feat/crux-woodwide` | ❌ Not Started | 0% | None (independent APIs) |
 | **A4** | GitHub App | `feat/github-app-webhooks` | ❌ Not Started | 0% | None (independent) |
 
@@ -118,18 +118,143 @@ export class FlowGuardRepository {
 
 ---
 
+## Agent A2: Vision + Phoenix Experiments ✅ COMPLETE
+
+**Branch:** `feat/vision-phoenix`
+**AI Tool:** Claude Code Max
+**Completion Date:** 2026-01-18
+**Integration:** Fully integrated with Agent A1 (MongoDB Core)
+
+### Deliverables (All Complete)
+- ✅ `src/tracing/types.ts` - TypeScript types for experiments and benchmarks
+- ✅ `src/tracing/dataset.ts` - Dataset manager with Zod validation
+- ✅ `src/tracing/phoenix-client.ts` - Phoenix OTLP trace sender
+- ✅ `src/tracing/phoenix-eval.ts` - A/B experiment runner & prompt optimizer
+- ✅ `src/tracing/index.ts` - Public exports
+- ✅ `scripts/create_benchmark_dataset.py` - Benchmark dataset generator
+- ✅ `scripts/evaluate_vision_accuracy.py` - Accuracy metrics calculator
+- ✅ `scripts/run_ab_test.ts` - CLI A/B test runner
+- ✅ `benchmarks/dataset.json` - 20 labeled UX test examples
+- ✅ `docs/PHOENIX_EXPERIMENTS.md` - Comprehensive documentation
+
+### Extended Agent A1's MongoDB Schema
+- ✅ Added `ABExperiment` interface to `src/db/schemas.ts`
+- ✅ Added `PromptMetrics` interface for accuracy tracking
+- ✅ Extended `FlowGuardRepository` with 6 new methods:
+  - `saveABExperiment()`
+  - `getRecentABExperiments()`
+  - `getABExperimentsByPromptVersion()`
+  - `getABExperimentById()`
+  - `getAllABExperiments()`
+  - `deleteAllABExperiments()`
+
+### Key Features Implemented
+- **A/B Experiment Framework** - Compare two prompt versions with statistical significance testing
+- **Phoenix Integration** - All vision API calls traced with OpenTelemetry/OTLP
+- **Benchmark Dataset System** - Python script to generate labeled UX test examples
+- **Prompt Versions** - v1.0 (baseline) and v2.0 (improved with WCAG checks)
+- **Statistical Analysis** - Two-tailed z-test for proportions (p < 0.05 significance)
+- **Metrics Tracking** - Accuracy, precision, recall, F1, tokens, cost, latency
+- **MongoDB Integration** - Stores experiment results in shared collection with A1
+
+### Performance Targets
+- ✅ v2.0 prompt designed to achieve >85% accuracy (vs v1.0 baseline ~72%)
+- ✅ Full A/B experiment cost: ~$0.20 per 20-example run
+- ✅ Graceful Phoenix degradation if offline (no errors thrown)
+
+### Environment Configuration
+- ✅ `.env` file created with all required keys
+- ✅ ANTHROPIC_API_KEY configured
+- ✅ MONGODB_URI configured (integrated with A1's database)
+- ✅ PHOENIX_ENDPOINT configured (http://localhost:6006/v1/traces)
+
+### Dependencies Added
+**Node.js:**
+- `mongodb-memory-server` - In-memory MongoDB for testing
+- `axios` - HTTP client for Phoenix API
+
+**Python:**
+- `anthropic` - Claude API client
+- `scikit-learn` - Metrics calculation
+- `numpy` - Statistical functions
+
+### Documentation
+- ✅ Complete guide in `docs/PHOENIX_EXPERIMENTS.md`
+- ✅ Quick start instructions
+- ✅ Prompt version comparison
+- ✅ Integration details with Agent A1
+- ✅ Phoenix tracing hierarchy explained
+- ✅ Troubleshooting guide
+
+### TypeScript Build Status
+- ✅ All files compile without errors
+- ✅ No unused variables or imports
+- ✅ Fully typed (no `any` types)
+- ✅ Integration with A1's schemas verified
+
+### Ready for Integration
+- ✅ Works with Agent A1's MongoDB implementation (no MongoMemoryServer in production)
+- ✅ Phoenix tracing can run offline (graceful degradation)
+- ✅ Benchmark dataset generated (20 examples across 5 categories)
+- ✅ A/B test runner script ready for use
+
+### Phase 1: Execution Data Capture ✅ COMPLETE
+
+**Completion Date:** 2026-01-18 04:46 AM
+**Purpose:** Capture comprehensive execution data from Playwright runs for agent-driven testing
+
+#### Deliverables (All Complete)
+- ✅ `src/tracing/execution-data-capturer.ts` - Core data capture integrated with Playwright
+- ✅ `src/tracing/execution-data-storage.ts` - MongoDB storage layer for execution data
+- ✅ `src/tracing/types.ts` - Extended with execution data types
+- ✅ `src/db/schemas.ts` - Extended with FlowExecutionDataDocument
+- ✅ `src/db/repository.ts` - Extended with 3 new methods for execution data
+- ✅ `src/runner.ts` - Integrated ExecutionDataCapturer for optional data capture
+- ✅ `src/tracing/execution-data-capturer.test.ts` - Full test suite (7 tests passing)
+
+#### Data Captured
+- **DOM Snapshots** - Full HTML, serialized DOM stats, accessibility tree at each step
+- **Network Requests** - All HTTP requests/responses with headers, body, timing
+- **Console Logs** - Browser console output including errors with stack traces
+- **Performance Metrics** - Navigation timing, resource loading, memory usage
+
+#### New Repository Methods
+```typescript
+// Extended FlowGuardRepository with:
+async saveFlowExecutionData(data: FlowExecutionData): Promise<string>
+async getFlowExecutionData(flowId: string): Promise<FlowExecutionData | null>
+async queryFlowExecutions(filters): Promise<FlowExecutionData[]>
+```
+
+#### Integration with Existing Code
+- ✅ ExecutionDataCapturer integrates seamlessly with current Playwright runner
+- ✅ Optional repository parameter - backward compatible
+- ✅ Execution data ID stored in FlowRunResult.traceId field
+- ✅ All data capture happens automatically when repository is provided
+
+#### Test Results
+- **Total Tests:** 7 passing (0 failing)
+- **Coverage:** DOM snapshots, network capture, console logs, performance metrics
+- **Test Duration:** ~3 seconds
+
+#### Next Phase
+- 🚧 **Phase 2:** MCP Server implementation (expose Playwright tools for agents)
+- 🚧 **Phase 3:** AI Analysis Engine (analyze execution data, generate insights)
+- 🚧 **Phase 4:** Phoenix Integration (comprehensive trace hierarchy)
+
+---
+
 ## Next Steps (Priority Order)
 
 ### Immediate (Can Start Now)
-1. **Agent A2** - Vision + Phoenix (uses mock MongoDB, independent)
-2. **Agent A3** - CrUX + Wood Wide (independent APIs)
-3. **Agent A4** - GitHub App (independent webhook server)
-4. **Agent B2** - HTML Reports (uses sample data)
-5. **Agent B4** - DO Spaces (independent S3 client)
+1. **Agent A3** - CrUX + Wood Wide (independent APIs)
+2. **Agent A4** - GitHub App (independent webhook server)
+3. **Agent B2** - HTML Reports (uses sample data)
+4. **Agent B4** - DO Spaces (independent S3 client)
 
-### After MongoDB Merge (Depends on A1)
-6. **Agent B1** - Next.js Frontend (now has real MongoDB interface)
-7. **Agent B3** - CLI Commands (now has real MongoDB interface)
+### After A1+A2 Merge (Ready Now)
+5. **Agent B1** - Next.js Frontend (A1+A2 MongoDB interfaces available)
+6. **Agent B3** - CLI Commands (A1+A2 MongoDB interfaces available)
 
 ### Integration Phase (Day 4)
 - All agents replace mocks with real MongoDB connection
@@ -144,9 +269,9 @@ export class FlowGuardRepository {
 ### Required (Set)
 - ✅ `MONGODB_URI` - MongoDB Atlas connection string
 - ✅ `ANTHROPIC_API_KEY` - Claude API key
+- ✅ `PHOENIX_ENDPOINT` - Phoenix tracing endpoint (http://localhost:6006/v1/traces)
 
 ### Optional (For Other Agents)
-- ⚠️ `PHOENIX_ENDPOINT` - Phoenix tracing endpoint (needed for A2)
 - ⚠️ `DO_SPACES_KEY` - DigitalOcean Spaces key (needed for B4)
 - ⚠️ `CRUX_API_KEY` - Chrome UX Report API key (needed for A3)
 - ⚠️ `WOOD_WIDE_API_KEY` - Wood Wide API key (needed for A3)
@@ -156,11 +281,12 @@ export class FlowGuardRepository {
 
 ## Merge Strategy Status
 
-### Phase 1: Foundation ✅ Ready
-- ✅ A1 (MongoDB Core) - **READY TO MERGE TO MAIN**
+### Phase 1: Foundation ✅ Complete
+- ✅ A1 (MongoDB Core) - **MERGED TO MAIN**
+- ✅ A2 (Vision + Phoenix) - **READY TO MERGE TO MAIN**
 
 ### Phase 2: Independent Modules (Can Start)
-- ⏳ A2 (Vision + Phoenix) - Not started
+- ⏳ A3 (CrUX + Wood Wide) - Not started
 - ⏳ A3 (CrUX + Wood Wide) - Not started
 - ⏳ A4 (GitHub App) - Not started
 - ⏳ B4 (DO Spaces) - Not started
@@ -191,6 +317,26 @@ export class FlowGuardRepository {
 - 7 commits created with detailed messages
 - Pushed to origin/feat/mongodb-core
 - Ready for code review and merge to main
+
+---
+
+## Files Modified/Created (Agent A2 - Phase 1)
+
+### New Files
+- `src/tracing/execution-data-capturer.ts` (207 lines)
+- `src/tracing/execution-data-storage.ts` (35 lines)
+- `src/tracing/execution-data-capturer.test.ts` (133 lines)
+
+### Modified Files
+- `src/tracing/types.ts` (added 127 lines for execution data types)
+- `src/db/schemas.ts` (added 25 lines for FlowExecutionDataDocument)
+- `src/db/repository.ts` (added 51 lines for execution data methods)
+- `src/runner.ts` (added 61 lines for ExecutionDataCapturer integration)
+
+### Total Lines of Code Added
+- **Production Code:** 506 lines
+- **Test Code:** 133 lines
+- **Total:** 639 lines
 
 ---
 

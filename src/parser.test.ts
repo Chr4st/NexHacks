@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFlow, parseFlowFile, validateYamlSafety } from './parser.js';
+import { parseFlow, validateYamlSafety } from './parser.js';
 
 describe('validateYamlSafety', () => {
   it('accepts safe YAML content', () => {

@@ -133,6 +133,17 @@ export interface ExperimentResult {
   correct: boolean;
 }
 
+// ==================== UX Risks ====================
+// Collection: ux_risks
+export interface UXRisk {
+  _id: ObjectId;
+  flowName: string;
+  stepIndex: number;
+  risk: string;
+  recommendation: string;
+  timestamp: Date;
+}
+
 // ==================== Aggregation Result Types ====================
 // Used for typed aggregation pipeline results
 
@@ -150,3 +161,67 @@ export interface FlowCostSummary {
   totalTokens: number;
   totalRuns: number;
 }
+
+// ==================== A/B Experiment Types (Agent A2) ====================
+
+export interface ABExperiment {
+  _id: ObjectId;
+  experimentId: string;
+  name: string;
+  description: string;
+  runAt: Date;
+  promptVersions: {
+    control: { version: string; systemPrompt: string };
+    variant: { version: string; systemPrompt: string };
+  };
+  control: PromptMetrics;
+  variant: PromptMetrics;
+  winner: 'control' | 'variant' | 'tie';
+  statisticalSignificance: {
+    pValue: number;
+    significant: boolean;
+  };
+}
+
+export interface PromptMetrics {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  avgTokens: number;
+  avgCost: number;
+  avgLatency: number;
+  phoenixTraceIds: string[];
+}
+
+// ==================== Flow Execution Data (Phase 1: Agent-Driven Testing) ====================
+// Collection: flow_executions
+
+import type {
+  FlowExecutionData,
+  StepExecutionData,
+  DOMSnapshot,
+  NetworkRequest,
+  ConsoleLog,
+  PerformanceMetrics
+} from '../tracing/types.js';
+
+export interface FlowExecutionDataDocument {
+  _id: ObjectId;
+  flowId: string;
+  flowName: string;
+  intent: string;
+  url: string;
+  startTime: Date;
+  endTime: Date;
+  verdict: 'pass' | 'fail' | 'error';
+  steps: StepExecutionData[];
+  domSnapshots: DOMSnapshot[];
+  networkRequests: NetworkRequest[];
+  consoleLogs: ConsoleLog[];
+  performanceMetrics: PerformanceMetrics;
+  phoenixTraceId: string;
+  createdAt: Date;
+}
+
+export type { FlowExecutionData, StepExecutionData, DOMSnapshot, NetworkRequest, ConsoleLog, PerformanceMetrics };

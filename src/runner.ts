@@ -1,9 +1,14 @@
 import { chromium, type Page, type Browser, type BrowserContext } from 'playwright';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as crypto from 'crypto';
 import type { Flow, Step, StepResult, FlowRunResult, Viewport } from './types.js';
 import { validateOutputDirectory, validatePath } from './security.js';
 import { BrowserbaseClient, BrowserbaseSessionPool } from './browserbase/index.js';
+import { ExecutionDataCapturer } from './tracing/execution-data-capturer.js';
+import { ExecutionDataStorage } from './tracing/execution-data-storage.js';
+import type { FlowGuardRepository } from './db/repository.js';
+import type { FlowExecutionData } from './tracing/types.js';
 
 export const DEFAULT_VIEWPORT: Viewport = {
   width: 1280,
@@ -185,12 +190,14 @@ export async function executeStep(
  * @param flow - Flow definition to execute
  * @param outputDir - Directory for screenshots and artifacts
  * @param baseDir - Optional base directory for path validation (defaults to cwd)
+ * @param repository - Optional repository for execution data capture
  * @returns FlowRunResult with all step results
  */
 export async function executeFlow(
   flow: Flow,
   outputDir: string,
-  baseDir?: string
+  baseDir?: string,
+  repository?: FlowGuardRepository
 ): Promise<FlowRunResult> {
   // Initialize Browserbase pool if not already done
   initBrowserbasePool();
@@ -198,9 +205,9 @@ export async function executeFlow(
   const mode = getExecutionMode(flow);
 
   if (mode === 'cloud' && browserbasePool) {
-    return await executeFlowOnBrowserbase(flow, outputDir, baseDir);
+    return await executeFlowOnBrowserbase(flow, outputDir, baseDir, repository);
   } else {
-    return await executeFlowLocally(flow, outputDir, baseDir);
+    return await executeFlowLocally(flow, outputDir, baseDir, repository);
   }
 }
 
@@ -210,7 +217,8 @@ export async function executeFlow(
 async function executeFlowLocally(
   flow: Flow,
   outputDir: string,
-  baseDir?: string
+  baseDir?: string,
+  repository?: FlowGuardRepository
 ): Promise<FlowRunResult> {
   const startedAt = new Date().toISOString();
   const startTime = Date.now();
@@ -226,6 +234,8 @@ async function executeFlowLocally(
 
   let context: BrowserContext | null = null;
   const stepResults: StepResult[] = [];
+  let dataCapturer: ExecutionDataCapturer | null = null;
+  let executionDataId: string | undefined;
 
   try {
     // Get shared browser instance (pooled)
@@ -238,8 +248,18 @@ async function executeFlowLocally(
 
     const page = await context.newPage();
 
+    // Initialize data capturer if repository is provided
+    if (repository) {
+      dataCapturer = new ExecutionDataCapturer(page);
+    }
+
     // Navigate to initial URL
     await page.goto(flow.url, { waitUntil: 'networkidle', timeout: DEFAULT_TIMEOUT });
+
+    // Capture initial DOM snapshot
+    if (dataCapturer) {
+      await dataCapturer.captureDOMSnapshot(0);
+    }
 
     // Execute each step
     for (let i = 0; i < flow.steps.length; i++) {
@@ -249,10 +269,53 @@ async function executeFlowLocally(
       const result = await executeStep(page, step, i, screenshotDir);
       stepResults.push(result);
 
+      // Capture DOM snapshot after each step
+      if (dataCapturer) {
+        await dataCapturer.captureDOMSnapshot(i + 1);
+      }
+
       // Stop on first failure
       if (!result.success) {
         break;
       }
+    }
+
+    // Capture performance metrics and store execution data
+    if (dataCapturer && repository) {
+      const performanceMetrics = await dataCapturer.capturePerformanceMetrics();
+      const capturedData = dataCapturer.getData();
+
+      const allPassed = stepResults.every((s) => s.success);
+      const hasError = stepResults.some((s) => s.error);
+      const verdict = hasError ? 'error' : allPassed ? 'pass' : 'fail';
+
+      const executionData: FlowExecutionData = {
+        flowId: crypto.randomUUID(),
+        flowName: flow.name,
+        intent: flow.intent,
+        url: flow.url,
+        startTime: new Date(startTime),
+        endTime: new Date(),
+        verdict,
+        steps: stepResults.map((sr, idx) => ({
+          stepIndex: idx,
+          action: sr.action,
+          target: flow.steps[idx]?.target,
+          value: flow.steps[idx]?.value,
+          success: sr.success,
+          durationMs: sr.durationMs,
+          domSnapshotId: capturedData.domSnapshots[idx + 1]?.snapshotId || '',
+          error: sr.error
+        })),
+        domSnapshots: capturedData.domSnapshots,
+        networkRequests: capturedData.networkRequests,
+        consoleLogs: capturedData.consoleLogs,
+        performanceMetrics,
+        phoenixTraceId: ''
+      };
+
+      const storage = new ExecutionDataStorage(repository);
+      executionDataId = await storage.saveFlowExecution(executionData);
     }
 
     await page.close();
@@ -287,6 +350,7 @@ async function executeFlowLocally(
     startedAt,
     completedAt,
     durationMs: Date.now() - startTime,
+    traceId: executionDataId, // Execution data ID for retrieval
   };
 }
 
@@ -296,7 +360,8 @@ async function executeFlowLocally(
 async function executeFlowOnBrowserbase(
   flow: Flow,
   outputDir: string,
-  baseDir?: string
+  baseDir?: string,
+  _repository?: FlowGuardRepository
 ): Promise<FlowRunResult> {
   const startedAt = new Date().toISOString();
   const startTime = Date.now();
