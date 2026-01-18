@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Bell, Shield, CreditCard, Users } from 'lucide-react';
+import { User, Bell, Shield, CreditCard, Users, Plug } from 'lucide-react';
 import Link from 'next/link';
 
 const settingsCategories = [
@@ -8,6 +8,12 @@ const settingsCategories = [
     description: 'Manage your account information',
     icon: User,
     href: '/settings/profile',
+  },
+  {
+    title: 'Integrations',
+    description: 'Connect GitHub and other services',
+    icon: Plug,
+    href: '/settings/integrations',
   },
   {
     title: 'Notifications',
