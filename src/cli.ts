@@ -12,6 +12,7 @@ import { saveReport } from './report.js';
 import type { FlowRunResult, OutputFormat, Config } from './types.js';
 import { ConfigSchema } from './types.js';
 import { validatePath, validateOutputDirectory, validateInputFile, PathSecurityError } from './security.js';
+import { DevSwarm } from './devswarm.js';
 
 const VERSION = '0.1.0';
 
@@ -158,12 +159,14 @@ program
   .option('--no-vision', 'Skip vision analysis (faster, but no UX validation)')
   .option('--no-trace', 'Disable Phoenix tracing')
   .option('--mock', 'Use mock data for APIs (demo mode)')
+  .option('--devswarm', 'Post UX risk feedback to pull request (if in PR)')
   .option('-o, --output <dir>', 'Output directory for reports', './reports')
   .action(async (flowArg: string | undefined, options: {
     format: OutputFormat;
     vision: boolean;
     trace: boolean;
     mock: boolean;
+    devswarm: boolean;
     output: string;
   }) => {
     const format = options.format;
@@ -207,7 +210,7 @@ program
             flowsDir = parsed.data.flowsDir;
           }
         }
-      } catch (error) {
+      } catch {
         // Use default flowsDir if config is invalid
       }
 
@@ -277,6 +280,26 @@ program
               // Update step success based on analysis
               if (step.analysis.status === 'fail') {
                 step.success = false;
+
+                if (options.devswarm) {
+                  try {
+                    const token = process.env.GITHUB_TOKEN;
+                    if (token) {
+                      const devswarm = new DevSwarm(token);
+                      const risk = {
+                        flowName: flow.name,
+                        stepIndex: step.stepIndex,
+                        risk: step.analysis.issues[0] || 'No specific issue reported',
+                        recommendation: step.analysis.suggestions[0] || 'No specific suggestion provided',
+                      };
+                      await devswarm.postComment(risk);
+                    } else {
+                      console.warn('GITHUB_TOKEN not set, skipping DevSwarm comment.');
+                    }
+                  } catch (error) {
+                    console.warn('Failed to post DevSwarm comment:', error);
+                  }
+                }
               }
             }
           }
