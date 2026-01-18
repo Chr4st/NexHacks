@@ -61,11 +61,15 @@ function extractSummaryData(run: FlowRunResult, historicalSuccessRate?: number):
     ? analysesWithConfidence.reduce((sum, a) => sum + a.confidence, 0) / analysesWithConfidence.length
     : run.confidence;
 
+  // Extract cost if available (from measurements or direct property)
+  const cost = (run as any).totalCost ?? (run as any).measurements?.totalCost;
+
   return {
     totalSteps: run.steps.length,
     passedSteps,
     failedSteps,
     duration: run.durationMs,
+    cost,
     avgConfidence,
     historicalSuccessRate,
   };
