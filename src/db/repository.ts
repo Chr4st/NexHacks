@@ -218,4 +218,47 @@ export class FlowGuardRepository {
       .limit(limit)
       .toArray();
   }
+
+  // ==================== A/B Experiments (Agent A2) ====================
+
+  async saveABExperiment(experiment: Omit<import('./schemas.js').ABExperiment, '_id'>): Promise<string> {
+    const result = await this.experiments.insertOne(experiment as any);
+    return result.insertedId.toString();
+  }
+
+  async getRecentABExperiments(limit: number = 10): Promise<import('./schemas.js').ABExperiment[]> {
+    return await this.experiments
+      .find<import('./schemas.js').ABExperiment>({ experimentId: { $exists: true } })
+      .sort({ runAt: -1 })
+      .limit(limit)
+      .toArray();
+  }
+
+  async getABExperimentsByPromptVersion(version: string): Promise<import('./schemas.js').ABExperiment[]> {
+    return await this.experiments
+      .find<import('./schemas.js').ABExperiment>({
+        $or: [
+          { 'promptVersions.control.version': version },
+          { 'promptVersions.variant.version': version }
+        ]
+      })
+      .sort({ runAt: -1 })
+      .toArray();
+  }
+
+  async getABExperimentById(experimentId: string): Promise<import('./schemas.js').ABExperiment | null> {
+    return await this.experiments.findOne({ experimentId }) as import('./schemas.js').ABExperiment | null;
+  }
+
+  async getAllABExperiments(): Promise<import('./schemas.js').ABExperiment[]> {
+    return await this.experiments
+      .find<import('./schemas.js').ABExperiment>({ experimentId: { $exists: true } })
+      .sort({ runAt: -1 })
+      .toArray();
+  }
+
+  async deleteAllABExperiments(): Promise<number> {
+    const result = await this.experiments.deleteMany({ experimentId: { $exists: true } });
+    return result.deletedCount;
+  }
 }

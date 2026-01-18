@@ -12,6 +12,7 @@ import { PromptOptimizer, DEFAULT_PROMPT_V1, IMPROVED_PROMPT_V2 } from '../src/t
 import { DatasetManager } from '../src/tracing/dataset.js';
 import { PhoenixClient } from '../src/tracing/phoenix-client.js';
 import { FlowGuardRepository } from '../src/db/repository.js';
+import { MongoClient } from 'mongodb';
 import Anthropic from '@anthropic-ai/sdk';
 
 program
@@ -29,10 +30,12 @@ async function main() {
   console.log(`  Variant: ${options.variant}`);
   console.log(`  Dataset: ${options.dataset}`);
 
-  // Start in-memory MongoDB
+  // Start in-memory MongoDB for development
   console.log('\n🔧 Starting MongoDB Memory Server...');
   const mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
+  const client = new MongoClient(mongoUri);
+  await client.connect();
 
   try {
     // Initialize clients
@@ -44,8 +47,7 @@ async function main() {
 
     const anthropic = new Anthropic({ apiKey });
     const phoenix = new PhoenixClient(process.env.PHOENIX_ENDPOINT || 'http://localhost:6006');
-    const repository = new FlowGuardRepository(mongoUri);
-    await repository.connect();
+    const repository = new FlowGuardRepository(client.db('flowguard'));
 
     const datasetManager = new DatasetManager(options.dataset);
 
@@ -92,10 +94,11 @@ async function main() {
     console.log(`\n🔗 View traces in Phoenix: http://localhost:6006`);
 
     // Cleanup
-    await repository.disconnect();
+    await client.close();
     await mongoServer.stop();
   } catch (error) {
     console.error('❌ Error running experiment:', error);
+    await client.close();
     await mongoServer.stop();
     process.exit(1);
   }

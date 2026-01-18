@@ -150,3 +150,35 @@ export interface FlowCostSummary {
   totalTokens: number;
   totalRuns: number;
 }
+
+// ==================== A/B Experiment Types (Agent A2) ====================
+
+export interface ABExperiment {
+  _id: ObjectId;
+  experimentId: string;
+  name: string;
+  description: string;
+  runAt: Date;
+  promptVersions: {
+    control: { version: string; systemPrompt: string };
+    variant: { version: string; systemPrompt: string };
+  };
+  control: PromptMetrics;
+  variant: PromptMetrics;
+  winner: 'control' | 'variant' | 'tie';
+  statisticalSignificance: {
+    pValue: number;
+    significant: boolean;
+  };
+}
+
+export interface PromptMetrics {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  avgTokens: number;
+  avgCost: number;
+  avgLatency: number;
+  phoenixTraceIds: string[];
+}

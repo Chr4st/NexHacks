@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
-import path from 'path';
-import { BenchmarkExampleSchema, BenchmarkDatasetSchema, type BenchmarkExample, type BenchmarkDataset } from './types.js';
+import { BenchmarkDatasetSchema, type BenchmarkExample, type BenchmarkDataset } from './types.js';
 
 /**
  * Dataset Manager for loading and managing benchmark datasets

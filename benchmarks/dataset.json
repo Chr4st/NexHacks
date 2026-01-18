@@ -1,0 +1,327 @@
+{
+  "version": "1.0",
+  "created_at": "2026-01-18T02:56:52.417944",
+  "total_examples": 20,
+  "examples": [
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:50.623305"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:50.688019"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:50.781448"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:50.922968"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.143885"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.214092"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.294621"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.366311"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.444889"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.509916"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.571692"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.632252"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.698543"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.765050"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.836332"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.893108"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:51.965652"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:52.155321"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:52.353811"
+      }
+    },
+    {
+      "id": "example_001",
+      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "ground_truth": {
+        "verdict": false,
+        "expected_issues": [
+          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
+        ]
+      },
+      "metadata": {
+        "category": "accessibility",
+        "difficulty": "medium",
+        "created_at": "2026-01-18T02:56:52.417787"
+      }
+    }
+  ]
+}

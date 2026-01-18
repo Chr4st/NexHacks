@@ -24,7 +24,7 @@ export class PromptOptimizer {
     private anthropic: Anthropic,
     private phoenix: PhoenixClient,
     private repository: FlowGuardRepository,
-    private datasetManager: DatasetManager
+    _datasetManager: DatasetManager
   ) {}
 
   /**
@@ -87,7 +87,7 @@ export class PromptOptimizer {
       };
 
       // Save to MongoDB
-      await this.repository.saveExperiment({
+      await this.repository.saveABExperiment({
         experimentId,
         name: config.name,
         description: config.description,
@@ -172,7 +172,8 @@ export class PromptOptimizer {
         const latency = Date.now() - startTime;
 
         // Parse verdict
-        const text = response.content[0].type === 'text' ? response.content[0].text : '';
+        const firstContent = response.content[0];
+        const text = firstContent && firstContent.type === 'text' ? firstContent.text : '';
         const predicted = this.parseVerdict(text);
 
         // Calculate cost
@@ -229,7 +230,7 @@ export class PromptOptimizer {
   /**
    * Calculate accuracy, precision, recall, F1 score
    */
-  private calculateMetrics(results: EvaluationResult[], dataset: BenchmarkExample[]): PromptMetrics {
+  private calculateMetrics(results: EvaluationResult[], _dataset: BenchmarkExample[]): PromptMetrics {
     let truePositives = 0;
     let falsePositives = 0;
     let trueNegatives = 0;
@@ -351,7 +352,7 @@ export class PromptOptimizer {
    * Get the best-performing prompt version from historical experiments
    */
   async getBestPrompt(): Promise<PromptTemplate> {
-    const experiments = await this.repository.getRecentExperiments(10);
+    const experiments = await this.repository.getRecentABExperiments(10);
 
     if (experiments.length === 0) {
       return DEFAULT_PROMPT_V1;
@@ -398,7 +399,7 @@ Respond in JSON format:
   "reasoning": "...",
   "issues": ["..."]
 }`,
-  userPromptTemplate: (screenshot: string, assertion: string) =>
+  userPromptTemplate: (_screenshot: string, assertion: string) =>
     `Assertion: ${assertion}\n\nAnalyze the screenshot and determine if this assertion is true.`
 };
 
@@ -421,6 +422,6 @@ Respond in JSON format:
   "issues": ["Specific issues found"],
   "wcag_violations": ["WCAG guideline violations if any"]
 }`,
-  userPromptTemplate: (screenshot: string, assertion: string) =>
+  userPromptTemplate: (_screenshot: string, assertion: string) =>
     `Assertion to verify: ${assertion}\n\nPerform a comprehensive UX analysis and determine if the assertion holds true.`
 };

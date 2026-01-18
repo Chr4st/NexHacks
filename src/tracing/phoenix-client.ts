@@ -9,7 +9,7 @@ import type { PhoenixTrace } from './types.js';
 export class PhoenixClient {
   private client: AxiosInstance;
 
-  constructor(private endpoint: string) {
+  constructor(endpoint: string) {
     this.client = axios.create({
       baseURL: endpoint,
       headers: {

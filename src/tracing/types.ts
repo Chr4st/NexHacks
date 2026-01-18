@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 
 // ============================================================================
@@ -85,27 +84,10 @@ export interface ExperimentResult {
 }
 
 // ============================================================================
-// MongoDB Experiment Schema
+// Re-export ABExperiment from A1's schemas (Agent A1 integration)
 // ============================================================================
 
-export interface Experiment {
-  _id?: ObjectId;
-  experimentId: string;
-  name: string;
-  description: string;
-  runAt: Date;
-  promptVersions: {
-    control: { version: string; systemPrompt: string };
-    variant: { version: string; systemPrompt: string };
-  };
-  control: PromptMetrics;
-  variant: PromptMetrics;
-  winner: 'control' | 'variant' | 'tie';
-  statisticalSignificance: {
-    pValue: number;
-    significant: boolean;
-  };
-}
+export type { ABExperiment } from '../db/schemas.js';
 
 // ============================================================================
 // Phoenix Trace Types
