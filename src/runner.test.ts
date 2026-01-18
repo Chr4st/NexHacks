@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Flow, Step, StepResult, Viewport } from './types.js';
+import type { Flow, Step } from './types.js';
 import * as path from 'node:path';
 
 // Mock security module to allow test paths
@@ -66,7 +66,7 @@ describe('executeStep', () => {
 
   it('executes navigate action', async () => {
     const step: Step = { action: 'navigate', target: 'https://example.com' };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.success).toBe(true);
     expect(result.action).toBe('navigate');
@@ -75,7 +75,7 @@ describe('executeStep', () => {
 
   it('executes click action', async () => {
     const step: Step = { action: 'click', target: '#submit-button' };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.success).toBe(true);
     expect(result.action).toBe('click');
@@ -84,7 +84,7 @@ describe('executeStep', () => {
 
   it('executes type action', async () => {
     const step: Step = { action: 'type', target: '#email', value: 'test@example.com' };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.success).toBe(true);
     expect(result.action).toBe('type');
@@ -93,7 +93,7 @@ describe('executeStep', () => {
 
   it('executes screenshot action', async () => {
     const step: Step = { action: 'screenshot', assert: 'Button is visible' };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.success).toBe(true);
     expect(result.action).toBe('screenshot');
@@ -104,7 +104,7 @@ describe('executeStep', () => {
 
   it('executes wait action', async () => {
     const step: Step = { action: 'wait', timeout: 1000 };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.success).toBe(true);
     expect(result.action).toBe('wait');
@@ -113,7 +113,7 @@ describe('executeStep', () => {
 
   it('executes scroll action', async () => {
     const step: Step = { action: 'scroll', value: '500' };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.success).toBe(true);
     expect(result.action).toBe('scroll');
@@ -122,7 +122,7 @@ describe('executeStep', () => {
 
   it('tracks duration for each step', async () => {
     const step: Step = { action: 'screenshot' };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
   });
@@ -130,7 +130,7 @@ describe('executeStep', () => {
   it('handles step errors gracefully', async () => {
     mockPage.click.mockRejectedValueOnce(new Error('Element not found'));
     const step: Step = { action: 'click', target: '#missing' };
-    const result = await executeStep(mockPage as any, step, 0, '/tmp');
+    const result = await executeStep(mockPage as unknown as Page, step, 0, '/tmp');
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('Element not found');

@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { Command } from 'commander';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -7,11 +5,14 @@ import { parseFlowFile, discoverFlows } from './parser.js';
 import { executeFlow, closeBrowser } from './runner.js';
 import { analyzeScreenshot } from './vision.js';
 import { initTracing, traceFlowRun, traceVisionAnalysis, shutdownTracing } from './tracing.js';
-import { getCruxMetrics, formatCruxMetrics } from './metrics.js';
+import { getCruxMetrics, formatCruxMetrics, getWoodWideAnalysis, formatWoodWideAnalysis } from './metrics.js';
 import { saveReport } from './report.js';
 import type { FlowRunResult, OutputFormat, Config } from './types.js';
 import { ConfigSchema } from './types.js';
 import { validatePath, validateOutputDirectory, validateInputFile, PathSecurityError } from './security.js';
+import { DevSwarm } from './devswarm.js';
+import { db } from './db/client.js';
+import { FlowGuardRepository } from './db/repository.js';
 
 const VERSION = '0.1.0';
 
@@ -158,12 +159,14 @@ program
   .option('--no-vision', 'Skip vision analysis (faster, but no UX validation)')
   .option('--no-trace', 'Disable Phoenix tracing')
   .option('--mock', 'Use mock data for APIs (demo mode)')
+  .option('--devswarm', 'Post UX risk feedback to pull request (if in PR)')
   .option('-o, --output <dir>', 'Output directory for reports', './reports')
   .action(async (flowArg: string | undefined, options: {
     format: OutputFormat;
     vision: boolean;
     trace: boolean;
     mock: boolean;
+    devswarm: boolean;
     output: string;
   }) => {
     const format = options.format;
@@ -176,7 +179,7 @@ program
       if (error instanceof PathSecurityError) {
         outputError('Invalid output directory path', format);
       }
-      throw error;
+      throw error; // Re-throw to ensure process exits with error code
     }
 
     // Find flows to run
@@ -191,7 +194,7 @@ program
         if (error instanceof PathSecurityError) {
           outputError('Invalid flow file path', format);
         }
-        outputError('Flow file not found', format);
+        outputError('Flow file not found', format); // outputError exits the process
       }
     } else {
       // Load config or use defaults
@@ -207,8 +210,8 @@ program
             flowsDir = parsed.data.flowsDir;
           }
         }
-      } catch (error) {
-        // Use default flowsDir if config is invalid
+      } catch {
+        // Use default flowsDir if config is invalid (error already logged by validatePath if it fails)
       }
 
       flowFiles = discoverFlows(flowsDir);
@@ -221,6 +224,17 @@ program
     // Initialize tracing if enabled
     if (options.trace) {
       initTracing();
+    }
+
+    let repository: FlowGuardRepository | null = null;
+    if (process.env.MONGODB_URI) {
+      try {
+        await db.connect();
+        repository = new FlowGuardRepository(db.getDb());
+      } catch (error) {
+        console.error('Failed to connect to MongoDB:', error);
+        outputError('Failed to connect to MongoDB for UX risk persistence.', format);
+      }
     }
 
     const results: FlowRunResult[] = [];
@@ -277,6 +291,29 @@ program
               // Update step success based on analysis
               if (step.analysis.status === 'fail') {
                 step.success = false;
+
+                if (options.devswarm) {
+                  try {
+                    const token = process.env.GITHUB_TOKEN;
+                    if (token) {
+                      const devswarm = new DevSwarm(token);
+                      const risk = {
+                        flowName: flow.name,
+                        stepIndex: step.stepIndex,
+                        risk: step.analysis.issues[0] || 'No specific issue reported',
+                        recommendation: step.analysis.suggestions[0] || 'No specific suggestion provided',
+                      };
+                      if (repository) {
+                        await repository.saveUXRisk(risk);
+                      }
+                      await devswarm.postComment(risk);
+                    } else {
+                      console.warn('GITHUB_TOKEN not set, skipping DevSwarm comment.');
+                    }
+                  } catch (error) {
+                    console.warn('Failed to post DevSwarm comment:', error);
+                  }
+                }
               }
             }
           }
@@ -315,6 +352,16 @@ program
 
       // Fetch CrUX metrics if available
       const cruxMetrics = await getCruxMetrics(flow.url, options.mock);
+
+      if (cruxMetrics) {
+        const woodWideAnalysis = await getWoodWideAnalysis(cruxMetrics, options.mock);
+        if (woodWideAnalysis) {
+          if (format === 'text') {
+            console.log('');
+            console.log(formatWoodWideAnalysis(woodWideAnalysis));
+          }
+        }
+      }
 
       // Generate report
       const reportPath = saveReport(flowResult, validatedOutputDir, cruxMetrics ?? undefined);
@@ -355,6 +402,10 @@ program
     // Shutdown tracing
     if (options.trace) {
       await shutdownTracing();
+    }
+
+    if (repository) {
+      await db.disconnect();
     }
 
     // Output JSON results

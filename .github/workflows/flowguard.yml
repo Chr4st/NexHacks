@@ -1,0 +1,142 @@
+name: FlowGuard Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Build
+        run: npm run build
+
+  flowguard:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build FlowGuard
+        run: npm run build
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run FlowGuard tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          PHOENIX_ENDPOINT: ${{ secrets.PHOENIX_ENDPOINT }}
+        run: |
+          if [ -d "flows" ] && [ "$(ls -A flows/*.yaml 2>/dev/null)" ]; then
+            node dist/cli.js run --all
+          else
+            echo "No flow files found, skipping FlowGuard tests"
+          fi
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowguard-results
+          path: |
+            tmp/screenshots/
+            tmp/reports/
+          if-no-files-found: ignore
+
+      - name: Comment PR with results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const resultsPath = 'tmp/results.json';
+            
+            let body = '## 🔍 FlowGuard Test Results\n\n';
+            
+            if (fs.existsSync(resultsPath)) {
+              const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+              const passed = results.every(r => r.passed);
+              const passedCount = results.filter(r => r.passed).length;
+              
+              body += passed 
+                ? `✅ **All Tests Passed** (${passedCount}/${results.length})\n\n`
+                : `❌ **Tests Failed** (${passedCount}/${results.length} passed)\n\n`;
+              
+              body += '| Flow | Status | Duration |\n';
+              body += '|------|--------|----------|\n';
+              
+              for (const result of results) {
+                const status = result.passed ? '✅' : '❌';
+                const duration = (result.duration / 1000).toFixed(2) + 's';
+                body += `| ${result.flowName} | ${status} | ${duration} |\n`;
+              }
+            } else {
+              body += '⚪ No flow tests were executed.\n';
+            }
+            
+            body += '\n---\n*Powered by FlowGuard*';
+            
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const marker = '<!-- flowguard-ci-report -->';
+            const existingComment = comments.find(c => c.body?.includes(marker));
+            
+            body = marker + '\n' + body;
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }

@@ -133,6 +133,17 @@ export interface ExperimentResult {
   correct: boolean;
 }
 
+// ==================== UX Risks ====================
+// Collection: ux_risks
+export interface UXRisk {
+  _id: ObjectId;
+  flowName: string;
+  stepIndex: number;
+  risk: string;
+  recommendation: string;
+  timestamp: Date;
+}
+
 // ==================== Aggregation Result Types ====================
 // Used for typed aggregation pipeline results
 

@@ -1,0 +1,105 @@
+{
+  "checkoutFlow": {
+    "flowName": "checkout-flow",
+    "intent": "User can successfully complete checkout process on mobile",
+    "url": "https://example.com/checkout",
+    "viewport": {
+      "width": 375,
+      "height": 667
+    },
+    "verdict": "pass",
+    "confidence": 92,
+    "steps": [
+      {
+        "stepIndex": 0,
+        "action": "navigate",
+        "success": true,
+        "screenshotBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "analysis": {
+          "status": "pass",
+          "confidence": 95,
+          "reasoning": "Page loaded successfully, checkout form is visible"
+        },
+        "durationMs": 1200
+      },
+      {
+        "stepIndex": 1,
+        "action": "click",
+        "success": true,
+        "screenshotBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "analysis": {
+          "status": "pass",
+          "confidence": 90,
+          "reasoning": "Add to cart button is clearly visible and clickable"
+        },
+        "durationMs": 500
+      },
+      {
+        "stepIndex": 2,
+        "action": "screenshot",
+        "success": true,
+        "screenshotBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "analysis": {
+          "status": "pass",
+          "confidence": 88,
+          "reasoning": "Checkout button is visible without scrolling"
+        },
+        "durationMs": 300
+      }
+    ],
+    "startedAt": "2026-01-18T10:00:00.000Z",
+    "completedAt": "2026-01-18T10:00:02.000Z",
+    "durationMs": 2000
+  },
+  "history": [
+    {
+      "flowName": "checkout-flow",
+      "intent": "User can successfully complete checkout process on mobile",
+      "url": "https://example.com/checkout",
+      "viewport": { "width": 375, "height": 667 },
+      "verdict": "pass",
+      "confidence": 90,
+      "steps": [
+        { "stepIndex": 0, "action": "navigate", "success": true, "durationMs": 1100 },
+        { "stepIndex": 1, "action": "click", "success": true, "durationMs": 450 },
+        { "stepIndex": 2, "action": "screenshot", "success": true, "durationMs": 280 }
+      ],
+      "startedAt": "2026-01-17T10:00:00.000Z",
+      "completedAt": "2026-01-17T10:00:01.830Z",
+      "durationMs": 1830
+    },
+    {
+      "flowName": "checkout-flow",
+      "intent": "User can successfully complete checkout process on mobile",
+      "url": "https://example.com/checkout",
+      "viewport": { "width": 375, "height": 667 },
+      "verdict": "pass",
+      "confidence": 88,
+      "steps": [
+        { "stepIndex": 0, "action": "navigate", "success": true, "durationMs": 1150 },
+        { "stepIndex": 1, "action": "click", "success": true, "durationMs": 480 },
+        { "stepIndex": 2, "action": "screenshot", "success": true, "durationMs": 290 }
+      ],
+      "startedAt": "2026-01-16T10:00:00.000Z",
+      "completedAt": "2026-01-16T10:00:01.920Z",
+      "durationMs": 1920
+    },
+    {
+      "flowName": "checkout-flow",
+      "intent": "User can successfully complete checkout process on mobile",
+      "url": "https://example.com/checkout",
+      "viewport": { "width": 375, "height": 667 },
+      "verdict": "fail",
+      "confidence": 75,
+      "steps": [
+        { "stepIndex": 0, "action": "navigate", "success": true, "durationMs": 1200 },
+        { "stepIndex": 1, "action": "click", "success": false, "durationMs": 500, "error": "Button not found" },
+        { "stepIndex": 2, "action": "screenshot", "success": true, "durationMs": 300 }
+      ],
+      "startedAt": "2026-01-15T10:00:00.000Z",
+      "completedAt": "2026-01-15T10:00:02.000Z",
+      "durationMs": 2000
+    }
+  ]
+}
+
