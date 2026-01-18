@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Flow, Step, StepResult, FlowRunResult, Viewport } from './types.js';
 import { validateOutputDirectory, validatePath } from './security.js';
+import { BrowserbaseClient, BrowserbaseSessionPool } from './browserbase/index.js';
 
 export const DEFAULT_VIEWPORT: Viewport = {
   width: 1280,
@@ -13,6 +14,47 @@ const DEFAULT_TIMEOUT = 30000;
 
 // Browser singleton for pooling - reuse browser instance across flows
 let browserInstance: Browser | null = null;
+
+// Execution mode type
+export type ExecutionMode = 'local' | 'cloud';
+
+// Browserbase session pool (initialized if API key available)
+let browserbasePool: BrowserbaseSessionPool | null = null;
+
+/**
+ * Initialize Browserbase session pool if API credentials are available
+ */
+function initBrowserbasePool(): void {
+  if (process.env.BROWSERBASE_API_KEY && process.env.BROWSERBASE_PROJECT_ID && !browserbasePool) {
+    const client = new BrowserbaseClient({
+      apiKey: process.env.BROWSERBASE_API_KEY,
+      projectId: process.env.BROWSERBASE_PROJECT_ID,
+      region: (process.env.BROWSERBASE_REGION as any) || 'us-east',
+    });
+
+    browserbasePool = new BrowserbaseSessionPool(client, {
+      minSessions: parseInt(process.env.BB_MIN_SESSIONS || '2', 10),
+      maxSessions: parseInt(process.env.BB_MAX_SESSIONS || '10', 10),
+      sessionLifetime: 30 * 60 * 1000, // 30 minutes
+      idleTimeout: 5 * 60 * 1000, // 5 minutes
+    });
+
+    console.log('[FlowGuard] Browserbase session pool initialized');
+  }
+}
+
+/**
+ * Determine execution mode based on environment
+ */
+function getExecutionMode(_flow: Flow): ExecutionMode {
+  // Environment variable override
+  const envMode = process.env.EXECUTION_MODE as ExecutionMode;
+  if (envMode === 'cloud') return 'cloud';
+  if (envMode === 'local') return 'local';
+
+  // Default to local
+  return 'local';
+}
 
 /**
  * Gets or creates a shared browser instance.
@@ -28,13 +70,17 @@ async function getBrowser(): Promise<Browser> {
 }
 
 /**
- * Closes the shared browser instance.
+ * Closes the shared browser instance and Browserbase pool.
  * Should be called on CLI exit for proper cleanup.
  */
 export async function closeBrowser(): Promise<void> {
   if (browserInstance) {
     await browserInstance.close();
     browserInstance = null;
+  }
+  if (browserbasePool) {
+    await browserbasePool.shutdown();
+    browserbasePool = null;
   }
 }
 
@@ -134,7 +180,7 @@ export async function executeStep(
 
 /**
  * Executes a complete flow and returns results.
- * Uses shared browser instance with isolated context per flow.
+ * Routes to either local Playwright or Browserbase cloud execution based on environment.
  *
  * @param flow - Flow definition to execute
  * @param outputDir - Directory for screenshots and artifacts
@@ -142,6 +188,26 @@ export async function executeStep(
  * @returns FlowRunResult with all step results
  */
 export async function executeFlow(
+  flow: Flow,
+  outputDir: string,
+  baseDir?: string
+): Promise<FlowRunResult> {
+  // Initialize Browserbase pool if not already done
+  initBrowserbasePool();
+
+  const mode = getExecutionMode(flow);
+
+  if (mode === 'cloud' && browserbasePool) {
+    return await executeFlowOnBrowserbase(flow, outputDir, baseDir);
+  } else {
+    return await executeFlowLocally(flow, outputDir, baseDir);
+  }
+}
+
+/**
+ * Execute flow locally using Playwright
+ */
+async function executeFlowLocally(
   flow: Flow,
   outputDir: string,
   baseDir?: string
@@ -221,6 +287,105 @@ export async function executeFlow(
     startedAt,
     completedAt,
     durationMs: Date.now() - startTime,
+  };
+}
+
+/**
+ * Execute flow on Browserbase cloud
+ */
+async function executeFlowOnBrowserbase(
+  flow: Flow,
+  outputDir: string,
+  baseDir?: string
+): Promise<FlowRunResult> {
+  const startedAt = new Date().toISOString();
+  const startTime = Date.now();
+  const viewport = flow.viewport ?? DEFAULT_VIEWPORT;
+
+  // Validate output directory is within allowed boundaries
+  const validatedOutputDir = validateOutputDirectory(outputDir, { baseDir });
+
+  // Create unique directory for this run
+  const safeFlowName = flow.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const runId = `${safeFlowName}-${Date.now()}`;
+  const screenshotDir = path.join(validatedOutputDir, runId);
+
+  const stepResults: StepResult[] = [];
+  let sessionId: string | null = null;
+
+  try {
+    // Acquire session from pool
+    sessionId = await browserbasePool!.acquire();
+    console.log(`[FlowGuard] Using Browserbase session ${sessionId} for flow: ${flow.name}`);
+
+    // Connect Playwright to Browserbase
+    const client = new BrowserbaseClient({
+      apiKey: process.env.BROWSERBASE_API_KEY!,
+      projectId: process.env.BROWSERBASE_PROJECT_ID!,
+    });
+
+    const { browser, context } = await client.connectPlaywright(sessionId);
+    const page = await context.newPage();
+
+    // Set viewport
+    await page.setViewportSize(viewport);
+
+    // Navigate to initial URL
+    await page.goto(flow.url, { waitUntil: 'networkidle', timeout: DEFAULT_TIMEOUT });
+
+    // Execute each step
+    for (let i = 0; i < flow.steps.length; i++) {
+      const step = flow.steps[i];
+      if (!step) continue;
+
+      const result = await executeStep(page, step, i, screenshotDir);
+      stepResults.push(result);
+
+      // Stop on first failure
+      if (!result.success) {
+        break;
+      }
+    }
+
+    await page.close();
+    await browser.close();
+
+    // Note: Recording URL will be retrieved and added to result
+    // when we update FlowRunResult type in Phase 3
+
+  } catch (error) {
+    console.error(`[FlowGuard] Browserbase execution error:`, error);
+    // Add error as a failed step if browser setup failed
+    stepResults.push({
+      stepIndex: 0,
+      action: 'navigate',
+      success: false,
+      error: error instanceof Error ? error.message : 'Browserbase connection failed',
+      durationMs: Date.now() - startTime,
+    });
+  } finally {
+    // Release session back to pool
+    if (sessionId) {
+      await browserbasePool!.release(sessionId);
+    }
+  }
+
+  const completedAt = new Date().toISOString();
+  const allPassed = stepResults.every((s) => s.success);
+  const hasError = stepResults.some((s) => s.error);
+
+  return {
+    flowName: flow.name,
+    intent: flow.intent,
+    url: flow.url,
+    viewport,
+    verdict: hasError ? 'error' : allPassed ? 'pass' : 'fail',
+    confidence: 0, // Will be set by vision analyzer
+    steps: stepResults,
+    startedAt,
+    completedAt,
+    durationMs: Date.now() - startTime,
+    // TODO: Add browserbase metadata when we update FlowRunResult type
   };
 }
 
