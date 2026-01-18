@@ -550,6 +550,13 @@ program
       try {
         const cleaner = new StorageCleaner(storage);
         const retentionDays = parseInt(options.retention || '30', 10);
+        
+        // Validate retention days
+        if (isNaN(retentionDays) || retentionDays < 0) {
+          outputError('Retention days must be a non-negative number', format);
+          return;
+        }
+        
         const preview = await cleaner.previewCleanup(retentionDays);
 
         if (format === 'json') {
@@ -576,6 +583,13 @@ program
       try {
         const cleaner = new StorageCleaner(storage);
         const retentionDays = parseInt(options.retention || '30', 10);
+        
+        // Validate retention days
+        if (isNaN(retentionDays) || retentionDays < 0) {
+          outputError('Retention days must be a non-negative number', format);
+          return;
+        }
+        
         const report = await cleaner.cleanup(retentionDays);
 
         if (format === 'json') {

@@ -12,9 +12,14 @@ export class StorageCleaner {
   /**
    * Clean up artifacts older than retention period.
    *
-   * @param retentionDays - Number of days to retain (default: 30)
+   * @param retentionDays - Number of days to retain (default: 30, must be >= 0)
    */
   async cleanup(retentionDays: number = 30): Promise<CleanupReport> {
+    // Validate and clamp retention days
+    if (retentionDays < 0) {
+      retentionDays = 0;
+    }
+
     console.log(`\n🧹 Cleaning up artifacts older than ${retentionDays} days...\n`);
 
     const report: CleanupReport = {
@@ -23,6 +28,27 @@ export class StorageCleaner {
       totalDeleted: 0,
       spaceSaved: 0,
     };
+
+    // Get objects to delete with metadata to calculate space saved
+    const storageWithMetadata = this.storage as StorageWithMetadata;
+    
+    // Get screenshot objects before deletion
+    const screenshotObjects = await storageWithMetadata.listObjectsWithMetadata('screenshots/');
+    const screenshotCutoffDate = new Date();
+    screenshotCutoffDate.setDate(screenshotCutoffDate.getDate() - retentionDays);
+    const screenshotsToDelete = screenshotObjects.filter(
+      (obj) => obj.lastModified && obj.lastModified < screenshotCutoffDate
+    );
+    const screenshotSpaceToSave = screenshotsToDelete.reduce((sum, obj) => sum + (obj.size || 0), 0);
+
+    // Get report objects before deletion
+    const reportObjects = await storageWithMetadata.listObjectsWithMetadata('reports/');
+    const reportCutoffDate = new Date();
+    reportCutoffDate.setDate(reportCutoffDate.getDate() - retentionDays * 2);
+    const reportsToDelete = reportObjects.filter(
+      (obj) => obj.lastModified && obj.lastModified < reportCutoffDate
+    );
+    const reportSpaceToSave = reportsToDelete.reduce((sum, obj) => sum + (obj.size || 0), 0);
 
     // Clean screenshots
     console.log('Cleaning screenshots...');
@@ -41,8 +67,9 @@ export class StorageCleaner {
     console.log(`  ✓ Deleted ${report.reportsDeleted} old reports`);
 
     report.totalDeleted = report.screenshotsDeleted + report.reportsDeleted;
+    report.spaceSaved = screenshotSpaceToSave + reportSpaceToSave;
 
-    console.log(`\n✅ Cleanup complete: ${report.totalDeleted} files deleted\n`);
+    console.log(`\n✅ Cleanup complete: ${report.totalDeleted} files deleted, ${(report.spaceSaved / 1024 / 1024).toFixed(2)} MB freed\n`);
 
     return report;
   }

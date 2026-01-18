@@ -35,10 +35,14 @@ async function main() {
 
   try {
     const report = await cleaner.cleanup(RETENTION_DAYS);
-    console.log(`Cleanup completed: ${report.totalDeleted} files deleted`);
+    console.log(`Cleanup completed: ${report.totalDeleted} files deleted, ${(report.spaceSaved / 1024 / 1024).toFixed(2)} MB freed`);
     process.exit(0);
   } catch (error) {
     console.error('Cleanup failed:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
     process.exit(1);
   }
 }
