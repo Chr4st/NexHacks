@@ -384,13 +384,27 @@ describe('GitHub App Integration Tests - Acceptance Criteria', () => {
     };
 
     it('should create check run in queued status', async () => {
-      (handler as any).testRunner = vi.fn().mockResolvedValue([]);
+      (handler as any).testRunner = vi.fn().mockResolvedValue([
+        { flowName: 'test', passed: true, duration: 1000, steps: [] }
+      ]);
       await handler.handlePullRequest(prPayload);
       
       expect(mockAppClient.createCheckRun).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'FlowGuard Tests',
           headSha: 'abc123'
+        })
+      );
+    });
+
+    it('should update check run with neutral when no tests run', async () => {
+      (handler as any).testRunner = vi.fn().mockResolvedValue([]);
+      await handler.handlePullRequest(prPayload);
+      
+      expect(mockAppClient.updateCheckRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'completed',
+          conclusion: 'neutral'
         })
       );
     });

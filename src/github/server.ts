@@ -4,7 +4,6 @@ import type { PullRequestPayload } from './types.js';
 
 export interface WebhookServerConfig {
   webhookHandler: WebhookHandler;
-  webhookSecret: string;
 }
 
 export function createWebhookServer(config: WebhookServerConfig): Express {
@@ -51,7 +50,8 @@ export function createWebhookServer(config: WebhookServerConfig): Express {
         });
 
         if (event === 'pull_request') {
-          await webhookHandler.handlePullRequest(payload as PullRequestPayload);
+          webhookHandler.handlePullRequest(payload as PullRequestPayload)
+            .catch(err => console.error('Error processing pull_request webhook:', err));
         }
       } catch (error) {
         if (error instanceof Error && error.message === 'Invalid webhook signature') {
@@ -62,7 +62,9 @@ export function createWebhookServer(config: WebhookServerConfig): Express {
       }
     } catch (error) {
       console.error('Webhook error:', error);
-      next(error);
+      if (!res.headersSent) {
+        next(error);
+      }
     }
   });
 

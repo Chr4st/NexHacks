@@ -61,8 +61,8 @@ export class WebhookHandler {
     try {
       const results = await this.testRunner();
 
-      const allPassed = results.every(r => r.passed);
-      const conclusion = allPassed ? 'success' : 'failure';
+      const allPassed = results.length > 0 && results.every(r => r.passed);
+      const conclusion = allPassed ? 'success' : (results.length === 0 ? 'neutral' : 'failure');
 
       const comment = this.commentGenerator.generateComment(results);
       await this.appClient.postPRComment({

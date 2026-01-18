@@ -9,8 +9,7 @@ const mockWebhookHandler = {
 
 describe('WebhookServer', () => {
   const config: WebhookServerConfig = {
-    webhookHandler: mockWebhookHandler as any,
-    webhookSecret: 'test-secret'
+    webhookHandler: mockWebhookHandler as any
   };
 
   beforeEach(() => {
@@ -45,8 +44,7 @@ describe('WebhookServer', () => {
 
     it('should accept custom configuration', () => {
       const customConfig: WebhookServerConfig = {
-        webhookHandler: mockWebhookHandler as any,
-        webhookSecret: 'custom-secret'
+        webhookHandler: mockWebhookHandler as any
       };
       
       const app = createWebhookServer(customConfig);
