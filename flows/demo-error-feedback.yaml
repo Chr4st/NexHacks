@@ -1,0 +1,12 @@
+# FlowGuard Demo: Error State Feedback
+# This flow tests whether error messages are clear and actionable
+
+name: error-feedback
+intent: "When an error occurs, the user receives clear feedback about what went wrong and how to fix it"
+url: https://example.com
+viewport:
+  width: 1280
+  height: 720
+steps:
+  - action: screenshot
+    assert: "If any error state is present, the error message is visible, clear, and includes guidance on next steps"
