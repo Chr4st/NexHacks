@@ -3,14 +3,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const costData = [
-  { date: 'Jan 12', cost: 2.5 },
-  { date: 'Jan 13', cost: 3.2 },
-  { date: 'Jan 14', cost: 2.8 },
-  { date: 'Jan 15', cost: 3.5 },
-  { date: 'Jan 16', cost: 2.9 },
-  { date: 'Jan 17', cost: 3.1 },
-  { date: 'Jan 18', cost: 2.7 },
+const successRateData = [
+  { date: 'Jan 12', rate: 84 },
+  { date: 'Jan 13', rate: 86 },
+  { date: 'Jan 14', rate: 83 },
+  { date: 'Jan 15', rate: 87 },
+  { date: 'Jan 16', rate: 85 },
+  { date: 'Jan 17', rate: 88 },
+  { date: 'Jan 18', rate: 87 },
 ];
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -18,8 +18,8 @@ const CustomTooltip = ({ active, payload }: any) => {
     return (
       <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
         <p className="text-sm font-medium text-gray-900 dark:text-white">{payload[0].payload.date}</p>
-        <p className="text-sm text-orange-600 dark:text-orange-400 font-bold">
-          ${payload[0].value.toFixed(2)}
+        <p className="text-sm text-green-600 dark:text-green-400 font-bold">
+          {payload[0].value}% success
         </p>
       </div>
     );
@@ -27,23 +27,23 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-export function CostChart() {
+export function SuccessRateChart() {
   return (
     <Card className="hover:shadow-lg transition-shadow duration-200">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500" />
-          AI Costs Over Time
+          <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500" />
+          Success Rate Trend
         </CardTitle>
-        <CardDescription>Daily AI API costs for the last 7 days</CardDescription>
+        <CardDescription>Test pass rate over the last 7 days</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={costData}>
+          <AreaChart data={successRateData}>
             <defs>
-              <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+              <linearGradient id="successGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
@@ -55,16 +55,17 @@ export function CostChart() {
             <YAxis
               stroke="#6b7280"
               style={{ fontSize: '12px' }}
-              tickFormatter={(value) => `$${value}`}
+              domain={[0, 100]}
+              tickFormatter={(value) => `${value}%`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Area
               type="monotone"
-              dataKey="cost"
-              stroke="#f97316"
+              dataKey="rate"
+              stroke="#10b981"
               strokeWidth={3}
-              fill="url(#costGradient)"
-              activeDot={{ r: 6, fill: '#f97316' }}
+              fill="url(#successGradient)"
+              activeDot={{ r: 6, fill: '#10b981' }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -72,4 +73,3 @@ export function CostChart() {
     </Card>
   );
 }
-

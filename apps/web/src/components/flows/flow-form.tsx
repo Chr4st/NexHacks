@@ -2,19 +2,23 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export function FlowForm() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [intent, setIntent] = useState('');
+  const [url, setUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [steps, setSteps] = useState([
-    { action: 'navigate', target: '', assertion: '' },
+    { action: 'navigate', target: '', assert: '' },
   ]);
 
   const addStep = () => {
-    setSteps([...steps, { action: 'navigate', target: '', assertion: '' }]);
+    setSteps([...steps, { action: 'navigate', target: '', assert: '' }]);
   };
 
   const removeStep = (index: number) => {
@@ -29,20 +33,72 @@ export function FlowForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Submit to API
-    router.push('/flows');
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/flows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          intent,
+          url,
+          steps,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create flow');
+      }
+
+      toast.success('Flow created successfully!', {
+        description: `${name} has been added to your flows.`,
+      });
+
+      router.push('/flows');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An error occurred';
+      setError(message);
+      toast.error('Failed to create flow', {
+        description: message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
       <div>
         <label className="block text-sm font-medium mb-2">Flow Name</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           placeholder="e.g., Checkout Flow"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Starting URL</label>
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          placeholder="https://example.com"
           required
         />
       </div>
@@ -52,7 +108,7 @@ export function FlowForm() {
         <textarea
           value={intent}
           onChange={(e) => setIntent(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           placeholder="Describe what this flow should validate..."
           rows={3}
           required
@@ -123,8 +179,8 @@ export function FlowForm() {
                   </label>
                   <input
                     type="text"
-                    value={step.assertion}
-                    onChange={(e) => updateStep(index, 'assertion', e.target.value)}
+                    value={step.assert}
+                    onChange={(e) => updateStep(index, 'assert', e.target.value)}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     placeholder="What to validate"
                     required
@@ -137,10 +193,19 @@ export function FlowForm() {
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit">Create Flow</Button>
+        <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            'Create Flow'
+          )}
+        </Button>
       </div>
     </form>
   );
