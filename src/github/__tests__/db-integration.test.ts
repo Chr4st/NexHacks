@@ -147,7 +147,7 @@ describe('Database Integration', () => {
   });
 
   describe('extractPRContext', () => {
-    it('should extract context from PR payload', () => {
+    it('should extract context from PR payload including tenant', () => {
       const payload: PullRequestPayload = {
         action: 'opened',
         number: 42,
@@ -172,6 +172,8 @@ describe('Database Integration', () => {
       expect(context.branch).toBe('feature/new-feature');
       expect(context.commitSha).toBe('abc123def456');
       expect(context.userId).toBe('author');
+      expect(context.tenantId).toBe('gh-123');
+      expect(context.installationId).toBe(123);
     });
   });
 

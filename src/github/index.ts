@@ -28,6 +28,17 @@ export type {
 
 export { FLOWGUARD_COMMENT_MARKER } from './types.js';
 
+// Multi-tenant support for B2B SaaS
+export {
+  extractTenantFromPayload,
+  tenantFilter,
+  tenantFilterFlat,
+  assertTenantOwnership,
+  withTenantContext,
+  PLAN_LIMITS
+} from './tenant.js';
+export type { TenantContext, TenantMapping } from './tenant.js';
+
 // Database integration (requires A1 MongoDB module)
 export {
   testResultToFlowGuardResult,

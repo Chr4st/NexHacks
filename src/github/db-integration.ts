@@ -10,6 +10,7 @@ import type { TestResult, StepResult } from '../db/schemas.js';
 import type { FlowGuardRepository } from '../db/repository.js';
 import type { PullRequestPayload } from './types.js';
 import type { FlowRunResult } from '../types.js';
+import { extractTenantFromPayload } from './tenant.js';
 
 /**
  * Convert a MongoDB TestResult to a FlowGuardResult for PR comments.
@@ -41,6 +42,7 @@ export function flowGuardResultToTestResult(
     branch?: string;
     commitSha?: string;
     userId?: string;
+    tenantId?: string;
   }
 ): TestResult {
   const failedSteps = result.steps.filter(s => !s.passed).length;
@@ -48,6 +50,7 @@ export function flowGuardResultToTestResult(
   return {
     timestamp: new Date(),
     metadata: {
+      tenantId: context.tenantId,
       flowName: result.flowName,
       environment: context.environment,
       viewport: context.viewport || '1920x1080',
@@ -83,11 +86,16 @@ export function extractPRContext(payload: PullRequestPayload): {
   branch: string;
   commitSha: string;
   userId: string;
+  tenantId: string;
+  installationId: number;
 } {
+  const tenant = extractTenantFromPayload(payload);
   return {
     branch: payload.pull_request.head.ref,
     commitSha: payload.pull_request.head.sha,
-    userId: payload.pull_request.user.login
+    userId: payload.pull_request.user.login,
+    tenantId: tenant.tenantId,
+    installationId: tenant.installationId
   };
 }
 
