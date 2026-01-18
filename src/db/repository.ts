@@ -1,5 +1,6 @@
 import { Db, Collection } from 'mongodb';
-import { TestResult, VisionCache, FlowDefinition, UsageEvent, Experiment } from './schemas.js';
+import { TestResult, VisionCache, FlowDefinition, UsageEvent, Experiment, SuccessRateTrendPoint, FlowCostSummary } from './schemas.js';
+import { validateString, validateNumber, validateSearchQuery, escapeRegex } from './validators.js';
 
 export class FlowGuardRepository {
   private testResults: Collection<TestResult>;
@@ -23,21 +24,27 @@ export class FlowGuardRepository {
   }
 
   async getRecentResults(flowName: string, limit: number = 10): Promise<TestResult[]> {
+    const validFlowName = validateString(flowName, 'flowName');
+    const validLimit = validateNumber(limit, 'limit', 1, 100);
+
     return await this.testResults
-      .find({ 'metadata.flowName': flowName })
+      .find({ 'metadata.flowName': validFlowName })
       .sort({ timestamp: -1 })
-      .limit(limit)
+      .limit(validLimit)
       .toArray();
   }
 
-  async getSuccessRateTrend(flowName: string, daysBack: number = 7): Promise<any[]> {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - daysBack);
+  async getSuccessRateTrend(flowName: string, daysBack: number = 7): Promise<SuccessRateTrendPoint[]> {
+    const validFlowName = validateString(flowName, 'flowName');
+    const validDaysBack = validateNumber(daysBack, 'daysBack', 1, 365);
 
-    return await this.testResults.aggregate([
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - validDaysBack);
+
+    return await this.testResults.aggregate<SuccessRateTrendPoint>([
       {
         $match: {
-          'metadata.flowName': flowName,
+          'metadata.flowName': validFlowName,
           timestamp: { $gte: startDate }
         }
       },
@@ -77,23 +84,20 @@ export class FlowGuardRepository {
     model: string,
     promptVersion: string
   ): Promise<VisionCache | null> {
-    const cached = await this.visionCache.findOne({
-      screenshotHash,
-      assertion,
-      model,
-      promptVersion,
-      expiresAt: { $gt: new Date() }
-    });
+    // Single atomic operation to fix race condition
+    const cached = await this.visionCache.findOneAndUpdate(
+      {
+        screenshotHash,
+        assertion,
+        model,
+        promptVersion,
+        expiresAt: { $gt: new Date() }
+      },
+      { $inc: { hitCount: 1 } },
+      { returnDocument: 'after' }
+    );
 
-    if (cached) {
-      // Increment hit count
-      await this.visionCache.updateOne(
-        { _id: cached._id },
-        { $inc: { hitCount: 1 } }
-      );
-    }
-
-    return cached;
+    return cached || null;
   }
 
   async cacheVisionResult(result: Omit<VisionCache, '_id' | 'createdAt' | 'expiresAt' | 'hitCount'>): Promise<void> {
@@ -146,18 +150,23 @@ export class FlowGuardRepository {
   }
 
   async getFlow(name: string): Promise<FlowDefinition | null> {
-    return await this.flowDefinitions.findOne({ name });
+    const validName = validateString(name, 'name');
+    return await this.flowDefinitions.findOne({ name: validName });
   }
 
   async searchFlowsByIntent(query: string): Promise<FlowDefinition[]> {
+    // Validate and sanitize query to prevent ReDoS attacks
+    const validQuery = validateSearchQuery(query);
+    const sanitized = escapeRegex(validQuery);
+
     // Note: Requires Atlas Search index on 'intent' field
-    // For now, use simple regex search
+    // For now, use simple regex search with sanitized input
     return await this.flowDefinitions
       .find({
         $or: [
-          { intent: { $regex: query, $options: 'i' } },
-          { name: { $regex: query, $options: 'i' } },
-          { tags: { $in: [query] } }
+          { intent: { $regex: sanitized, $options: 'i' } },
+          { name: { $regex: sanitized, $options: 'i' } },
+          { tags: { $in: [sanitized] } }
         ]
       })
       .limit(10)
@@ -173,8 +182,8 @@ export class FlowGuardRepository {
     } as UsageEvent);
   }
 
-  async getCostByFlow(startDate: Date, endDate: Date): Promise<any[]> {
-    return await this.usageEvents.aggregate([
+  async getCostByFlow(startDate: Date, endDate: Date): Promise<FlowCostSummary[]> {
+    return await this.usageEvents.aggregate<FlowCostSummary>([
       {
         $match: {
           timestamp: { $gte: startDate, $lte: endDate },
