@@ -146,7 +146,8 @@ describe('Report Generator E2E Tests', () => {
 
       expect(html).toContain('<style>');
       expect(html).not.toContain('<link rel="stylesheet"');
-      expect(html).not.toMatch(/href=["']https?:\/\//);
+      // Only check for stylesheet links, not all href attributes (Phoenix trace links are OK)
+      expect(html).not.toMatch(/<link[^>]+href=["']https?:\/\//);
     });
 
     it('should have embedded JavaScript (no external scripts)', () => {
@@ -220,13 +221,13 @@ describe('Report Generator E2E Tests', () => {
       const mockFlowRun = createComprehensiveMockFlowRun();
       const html = generateModernReport(mockFlowRun);
 
-      // Count step items
-      const stepItemMatches = html.match(/step-item/g);
+      // Count actual step-item divs (not CSS references)
+      const stepItemMatches = html.match(/<div class="step-item/g);
       expect(stepItemMatches?.length).toBe(mockFlowRun.steps.length);
 
       // Check for passed/failed classes
-      expect(html).toContain('step-item passed');
-      expect(html).toContain('step-item failed');
+      expect(html).toContain('class="step-item passed');
+      expect(html).toContain('class="step-item failed');
     });
 
     it('should include screenshots when available', () => {
@@ -256,7 +257,7 @@ describe('Report Generator E2E Tests', () => {
 
       const failedStep = mockFlowRun.steps.find(s => !s.success);
       if (failedStep && failedStep.analysis && failedStep.analysis.status === 'fail') {
-        expect(html).toContain('issues');
+        expect(html).toContain('Issues:');
         failedStep.analysis.issues.forEach(issue => {
           expect(html).toContain(issue);
         });
@@ -409,7 +410,8 @@ describe('Report Generator E2E Tests', () => {
 
       const html = generateModernReport(mockFlowRun, { historicalData });
 
-      expect(html).not.toContain('trends-section');
+      // Check for actual trends div (not CSS class definition)
+      expect(html).not.toContain('<div class="trends-section">');
     });
 
     it('should handle edge case: empty historical data', () => {
@@ -418,7 +420,8 @@ describe('Report Generator E2E Tests', () => {
 
       // Should still generate report without trends
       expect(html).toContain('<!DOCTYPE html>');
-      expect(html).not.toContain('trends-section');
+      // Check for actual trends div (not CSS class definition)
+      expect(html).not.toContain('<div class="trends-section">');
     });
   });
 
@@ -580,7 +583,8 @@ describe('Report Generator E2E Tests', () => {
       const html = generateModernReport(mockFlowRun, { historicalData });
 
       // Should not include trends section with only 1 point
-      expect(html).not.toContain('trends-section');
+      // Check for actual trends div (not CSS class definition)
+      expect(html).not.toContain('<div class="trends-section">');
     });
 
     it('should handle empty trend data gracefully', () => {
@@ -588,7 +592,8 @@ describe('Report Generator E2E Tests', () => {
       const html = generateModernReport(mockFlowRun, { historicalData: [] });
 
       expect(html).toContain('<!DOCTYPE html>');
-      expect(html).not.toContain('trends-section');
+      // Check for actual trends div (not CSS class definition)
+      expect(html).not.toContain('<div class="trends-section">');
     });
   });
 

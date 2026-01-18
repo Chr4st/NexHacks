@@ -51,14 +51,16 @@ function extractSummaryData(run: FlowRunResult, historicalSuccessRate?: number):
   const failedSteps = run.steps.length - passedSteps;
   
   // Calculate average confidence from step analyses
+  // Filter to only pass/fail analyses which have confidence property
   const analysesWithConfidence = run.steps
     .map(s => s.analysis)
-    .filter((a): a is Exclude<typeof a, undefined> => 
-      a !== undefined && a.status !== 'error'
-    );
-  
+    .filter(a => a !== undefined && a.status !== 'error');
+
   const avgConfidence = analysesWithConfidence.length > 0
-    ? analysesWithConfidence.reduce((sum, a) => sum + a.confidence, 0) / analysesWithConfidence.length
+    ? analysesWithConfidence.reduce((sum, a) =>
+        // Cast to access confidence - we know it exists after filtering out 'error' type
+        sum + (a as { confidence: number }).confidence, 0
+      ) / analysesWithConfidence.length
     : run.confidence;
 
   // Extract cost if available (from measurements or direct property)

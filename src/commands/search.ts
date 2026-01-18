@@ -40,7 +40,7 @@ export function createSearchCommand(): Command {
         }
 
         // Get database connection
-        const database = await db;
+        const database = await db.connect();
         const repository = new FlowGuardRepository(database);
 
         // Search flows

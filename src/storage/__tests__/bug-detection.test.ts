@@ -581,7 +581,7 @@ describe('Bug Detection Tests - DigitalOcean Spaces Storage', () => {
 
   describe('Type Safety and Validation', () => {
     it('should validate required configuration parameters', () => {
-      // Missing required fields should cause error
+      // Missing required fields should cause error at construction time
       expect(() => {
         new SpacesStorage({
           region: '',
@@ -590,7 +590,7 @@ describe('Bug Detection Tests - DigitalOcean Spaces Storage', () => {
           secretAccessKey: '',
           bucket: '',
         });
-      }).not.toThrow(); // Constructor doesn't validate, but S3Client will fail on use
+      }).toThrow('Region is missing');
     });
 
     it('should handle undefined optional parameters', () => {
