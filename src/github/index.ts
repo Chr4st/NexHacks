@@ -27,3 +27,12 @@ export type {
 } from './types.js';
 
 export { FLOWGUARD_COMMENT_MARKER } from './types.js';
+
+// Database integration (requires A1 MongoDB module)
+export {
+  testResultToFlowGuardResult,
+  flowGuardResultToTestResult,
+  extractPRContext,
+  createPersistentTestRunner,
+  getFlowHistory
+} from './db-integration.js';
