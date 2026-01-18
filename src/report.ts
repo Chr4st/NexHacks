@@ -1,8 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { FlowRunResult, StepResult, CruxMetrics, WoodWideResult } from './types.js';
+import type { FlowRunResult, StepResult, CruxMetrics } from './types.js';
 import { validateOutputDirectory, validatePath } from './security.js';
-import { generateModernReport } from './report/generator.js';
 
 /**
  * Convert step result to HTML.
@@ -89,40 +88,12 @@ function cruxToHtml(metrics: CruxMetrics): string {
 
 /**
  * Generate a complete HTML report for a flow run.
- * Uses the modern report generator by default.
  *
  * @param run - Flow run result
  * @param cruxMetrics - Optional CrUX metrics
- * @param options - Optional additional options (historicalData, woodWideInsights)
  * @returns HTML string
  */
-export function generateReport(
-  run: FlowRunResult,
-  cruxMetrics?: CruxMetrics,
-  options?: {
-    historicalData?: FlowRunResult[];
-    woodWideInsights?: WoodWideResult;
-    useModernReport?: boolean;
-  }
-): string {
-  // Use modern report by default, but allow fallback to legacy
-  if (options?.useModernReport !== false) {
-    return generateModernReport(run, {
-      cruxMetrics,
-      historicalData: options?.historicalData,
-      woodWideInsights: options?.woodWideInsights,
-    });
-  }
-
-  // Legacy report generation (kept for backward compatibility)
-  return generateLegacyReport(run, cruxMetrics);
-}
-
-/**
- * Legacy report generation (kept for backward compatibility).
- * @deprecated Use generateReport with modern generator instead
- */
-function generateLegacyReport(run: FlowRunResult, cruxMetrics?: CruxMetrics): string {
+export function generateReport(run: FlowRunResult, cruxMetrics?: CruxMetrics): string {
   const verdictIcon = run.verdict === 'pass' ? '✅' : run.verdict === 'fail' ? '❌' : '⚠️';
   const stepsHtml = run.steps.map(stepToHtml).join('');
   const cruxHtml = cruxMetrics ? cruxToHtml(cruxMetrics) : '';
@@ -380,24 +351,18 @@ function generateLegacyReport(run: FlowRunResult, cruxMetrics?: CruxMetrics): st
  * @param outputDir - Directory to save report
  * @param cruxMetrics - Optional CrUX metrics
  * @param baseDir - Optional base directory for path validation (defaults to cwd)
- * @param options - Optional additional options (historicalData, woodWideInsights, useModernReport)
  * @returns Path to saved report
  */
 export function saveReport(
   run: FlowRunResult,
   outputDir: string,
   cruxMetrics?: CruxMetrics,
-  baseDir?: string,
-  options?: {
-    historicalData?: FlowRunResult[];
-    woodWideInsights?: WoodWideResult;
-    useModernReport?: boolean;
-  }
+  baseDir?: string
 ): string {
   // Validate and ensure output directory exists within allowed boundaries
   const validatedDir = validateOutputDirectory(outputDir, { baseDir });
 
-  const html = generateReport(run, cruxMetrics, options);
+  const html = generateReport(run, cruxMetrics);
   // Sanitize flow name for filesystem safety
   const safeFlowName = run.flowName.replace(/[^a-zA-Z0-9-_]/g, '_');
   const filename = `${safeFlowName}-${Date.now()}.html`;

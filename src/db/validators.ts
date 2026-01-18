@@ -7,6 +7,22 @@ export function validateString(value: unknown, name: string): string {
   if (typeof value !== 'string' || !value) {
     throw new Error(`Invalid ${name}: must be non-empty string`);
   }
+
+  // Detect NoSQL injection patterns
+  const injectionPatterns = [
+    /[{}]/,           // MongoDB operators like {$ne: null}
+    /\$\w+/,          // MongoDB operators like $where, $regex
+    /;.*:/,           // Injection attempts like "; key: "value"
+    /\.\./,           // Path traversal
+    /[\x00-\x1f]/     // Control characters
+  ];
+
+  for (const pattern of injectionPatterns) {
+    if (pattern.test(value)) {
+      throw new Error(`Invalid ${name}: contains forbidden characters`);
+    }
+  }
+
   return value;
 }
 
