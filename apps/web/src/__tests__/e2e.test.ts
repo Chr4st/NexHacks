@@ -56,9 +56,18 @@ describe('Next.js App E2E Tests', () => {
         'src/app/layout.tsx',
         'src/app/(dashboard)/dashboard/page.tsx',
         'src/app/(dashboard)/flows/page.tsx',
+        'src/app/(dashboard)/flows/[id]/page.tsx',
+        'src/app/(dashboard)/flows/new/page.tsx',
         'src/app/(dashboard)/reports/page.tsx',
+        'src/app/(dashboard)/reports/[id]/page.tsx',
         'src/app/(dashboard)/analytics/page.tsx',
         'src/app/(dashboard)/settings/page.tsx',
+        'src/app/(dashboard)/settings/team/page.tsx',
+        'src/app/(dashboard)/settings/billing/page.tsx',
+        'src/app/(dashboard)/settings/profile/page.tsx',
+        'src/app/(dashboard)/settings/notifications/page.tsx',
+        'src/app/(dashboard)/settings/security/page.tsx',
+        'src/app/(dashboard)/api-keys/page.tsx',
         'src/app/sign-in/[[...sign-in]]/page.tsx',
         'src/app/sign-up/[[...sign-up]]/page.tsx',
       ];
@@ -72,7 +81,9 @@ describe('Next.js App E2E Tests', () => {
     it('should have API routes', async () => {
       const apiRoutes = [
         'src/app/api/flows/route.ts',
+        'src/app/api/flows/[id]/route.ts',
         'src/app/api/reports/route.ts',
+        'src/app/api/reports/[id]/route.ts',
         'src/app/api/analytics/route.ts',
       ];
 
@@ -126,6 +137,95 @@ describe('Next.js App E2E Tests', () => {
     it('should have flow form component', async () => {
       const formPath = path.join(appDir, 'src/components/flows/flow-form.tsx');
       await expect(fs.access(formPath)).resolves.not.toThrow();
+    });
+
+    it('should have marketing components', async () => {
+      const components = [
+        'src/components/marketing/hero.tsx',
+        'src/components/marketing/features.tsx',
+        'src/components/marketing/pricing.tsx',
+        'src/components/marketing/cta.tsx',
+      ];
+
+      for (const component of components) {
+        const componentPath = path.join(appDir, component);
+        await expect(fs.access(componentPath)).resolves.not.toThrow();
+      }
+    });
+
+    it('should have dashboard components', async () => {
+      const components = [
+        'src/components/dashboard/sidebar.tsx',
+        'src/components/dashboard/navbar.tsx',
+        'src/components/dashboard/stats-cards.tsx',
+        'src/components/dashboard/recent-runs.tsx',
+        'src/components/dashboard/activity-feed.tsx',
+      ];
+
+      for (const component of components) {
+        const componentPath = path.join(appDir, component);
+        await expect(fs.access(componentPath)).resolves.not.toThrow();
+      }
+    });
+
+    it('should have analytics components', async () => {
+      const components = [
+        'src/components/analytics/cost-chart.tsx',
+        'src/components/analytics/success-rate-chart.tsx',
+        'src/components/analytics/crux-metrics-card.tsx',
+        'src/components/analytics/trend-indicator.tsx',
+      ];
+
+      for (const component of components) {
+        const componentPath = path.join(appDir, component);
+        await expect(fs.access(componentPath)).resolves.not.toThrow();
+      }
+    });
+
+    it('should have report components', async () => {
+      const components = [
+        'src/components/reports/report-card.tsx',
+      ];
+
+      for (const component of components) {
+        const componentPath = path.join(appDir, component);
+        await expect(fs.access(componentPath)).resolves.not.toThrow();
+      }
+    });
+
+    it('should have flow components', async () => {
+      const components = [
+        'src/components/flows/flows-table.tsx',
+        'src/components/flows/search-flows.tsx',
+      ];
+
+      for (const component of components) {
+        const componentPath = path.join(appDir, component);
+        await expect(fs.access(componentPath)).resolves.not.toThrow();
+      }
+    });
+
+    it('should have hooks', async () => {
+      const hooks = [
+        'src/hooks/use-flows.ts',
+        'src/hooks/use-reports.ts',
+        'src/hooks/use-analytics.ts',
+      ];
+
+      for (const hook of hooks) {
+        const hookPath = path.join(appDir, hook);
+        await expect(fs.access(hookPath)).resolves.not.toThrow();
+      }
+    });
+
+    it('should have types', async () => {
+      const typesPath = path.join(appDir, 'src/types/index.ts');
+      await expect(fs.access(typesPath)).resolves.not.toThrow();
+    });
+
+    it('should have API client', async () => {
+      const apiPath = path.join(appDir, 'src/lib/api.ts');
+      await expect(fs.access(apiPath)).resolves.not.toThrow();
     });
   });
 
@@ -217,6 +317,9 @@ describe('Next.js App E2E Tests', () => {
       
       expect(content).toContain('MONGODB_URI');
       expect(content).toContain('CLERK');
+      expect(content).toContain('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
+      expect(content).toContain('CLERK_SECRET_KEY');
+      expect(content).toContain('NEXT_PUBLIC_APP_URL');
     });
   });
 });

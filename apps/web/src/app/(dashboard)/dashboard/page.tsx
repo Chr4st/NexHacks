@@ -1,79 +1,91 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Suspense } from 'react';
+import { StatsCards } from '@/components/dashboard/stats-cards';
+import { RecentRuns } from '@/components/dashboard/recent-runs';
+import { CostChart } from '@/components/analytics/cost-chart';
+import { ActivityFeed } from '@/components/dashboard/activity-feed';
+import { Card, CardContent } from '@/components/ui/card';
 
-export default async function DashboardPage() {
-  const { userId } = await auth();
-  
-  if (!userId) {
-    redirect('/sign-in');
-  }
-
-  // Mock data for now
-  const stats = {
-    totalFlows: 12,
-    passingFlows: 10,
-    failingFlows: 2,
-    totalRuns: 145,
-    successRate: 87,
-  };
-
+function StatsCardsSkeleton() {
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {[1, 2, 3, 4].map((i) => (
+        <Card key={i}>
+          <CardContent className="p-6">
+            <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function ChartSkeleton() {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="h-[300px] animate-pulse bg-gray-200 dark:bg-gray-700 rounded" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ActivitySkeleton() {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse bg-gray-200 dark:bg-gray-700 rounded" />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded" />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Dashboard
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Welcome back! Here's what's happening with your flows.
+        </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Flows</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalFlows}</div>
-            <p className="text-xs text-muted-foreground">
-              Active test flows
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.successRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              +2.5% from last week
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Passing</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.passingFlows}</div>
-            <p className="text-xs text-muted-foreground">
-              Flows passing tests
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Failing</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.failingFlows}</div>
-            <p className="text-xs text-muted-foreground">
-              Needs attention
-            </p>
-          </CardContent>
-        </Card>
+
+      <Suspense fallback={<StatsCardsSkeleton />}>
+        <StatsCards />
+      </Suspense>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Suspense fallback={<ChartSkeleton />}>
+          <CostChart />
+        </Suspense>
+
+        <Suspense fallback={<ActivitySkeleton />}>
+          <ActivityFeed />
+        </Suspense>
       </div>
+
+      <Suspense fallback={<TableSkeleton />}>
+        <RecentRuns />
+      </Suspense>
     </div>
   );
 }
