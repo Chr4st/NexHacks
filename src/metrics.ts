@@ -1,7 +1,33 @@
-import type { CruxMetrics, WoodWideResult } from './types.js';
+import { z } from 'zod';
+import type { CruxMetrics } from './types.js';
+
+/**
+ * Schema for validating the CrUX API response.
+ * The API returns metrics with percentile data nested under 'percentiles'.
+ */
+const CruxApiResponseSchema = z.object({
+  record: z.object({
+    metrics: z.object({
+      largest_contentful_paint: z.object({
+        percentiles: z.object({
+          p75: z.number(),
+        }),
+      }).optional(),
+      cumulative_layout_shift: z.object({
+        percentiles: z.object({
+          p75: z.number(),
+        }),
+      }).optional(),
+      interaction_to_next_paint: z.object({
+        percentiles: z.object({
+          p75: z.number(),
+        }),
+      }).optional(),
+    }),
+  }).optional(),
+});
 
 const CRUX_API_URL = 'https://chromeuxreport.googleapis.com/v1/records:queryRecord';
-const WOOD_WIDE_API_URL = 'https://api.woodwide.ai/analyze';
 
 // Mock data for demo when APIs are unavailable
 const MOCK_CRUX_METRICS: CruxMetrics = {
@@ -52,17 +78,19 @@ export async function getCruxMetrics(
       throw new Error(`CrUX API error: ${response.status}`);
     }
 
-    const data = await response.json() as {
-      record?: {
-        metrics?: {
-          largest_contentful_paint?: { percentiles?: { p75?: number } };
-          cumulative_layout_shift?: { percentiles?: { p75?: number } };
-          interaction_to_next_paint?: { percentiles?: { p75?: number } };
-        };
-      };
-    };
+    const rawData: unknown = await response.json();
 
-    const metrics = data.record?.metrics;
+    // Validate the response against our schema
+    const parseResult = CruxApiResponseSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      const errorMessages = parseResult.error.errors
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
+        .join(', ');
+      console.error('[FlowGuard] CrUX response validation failed:', errorMessages);
+      return null;
+    }
+
+    const metrics = parseResult.data.record?.metrics;
     if (!metrics) {
       return null;
     }
@@ -89,87 +117,6 @@ export async function getCruxMetrics(
     console.error('[FlowGuard] CrUX fetch failed:', error instanceof Error ? error.message : 'Unknown error');
     return null;
   }
-}
-
-/**
- * Analyze metrics using Wood Wide AI for statistical reasoning.
- *
- * @param question - Question to ask about the data
- * @param data - Structured data for analysis
- * @param useMock - Use mock response if true (for demos)
- * @returns Wood Wide analysis result
- */
-export async function analyzeWithWoodWide(
-  question: string,
-  data: Record<string, unknown>,
-  useMock = false
-): Promise<WoodWideResult | null> {
-  if (useMock) {
-    console.log('[FlowGuard] Using mock Wood Wide response for demo');
-    return {
-      significant: true,
-      confidence: 0.95,
-      interpretation: 'The observed improvement is statistically significant with 95% confidence.',
-    };
-  }
-
-  const apiKey = process.env.WOOD_WIDE_API_KEY;
-  if (!apiKey) {
-    console.warn('[FlowGuard] No WOOD_WIDE_API_KEY set, Wood Wide analysis unavailable');
-    return null;
-  }
-
-  try {
-    const response = await fetch(WOOD_WIDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ question, data }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Wood Wide API error: ${response.status}`);
-    }
-
-    const result = await response.json() as WoodWideResult;
-    return result;
-  } catch (error) {
-    console.error('[FlowGuard] Wood Wide analysis failed:', error instanceof Error ? error.message : 'Unknown error');
-    return null;
-  }
-}
-
-/**
- * Compare two sets of CrUX metrics and analyze significance.
- *
- * @param before - Metrics before change
- * @param after - Metrics after change
- * @param useMock - Use mock data for demo
- * @returns Analysis of whether improvement is significant
- */
-export async function compareMetrics(
-  before: CruxMetrics,
-  after: CruxMetrics,
-  useMock = false
-): Promise<WoodWideResult | null> {
-  const question = `
-    Compare these web performance metrics and determine if the changes are statistically significant:
-    Before: LCP=${before.lcp.p75}s, CLS=${before.cls.p75}, INP=${before.inp.p75}ms
-    After: LCP=${after.lcp.p75}s, CLS=${after.cls.p75}, INP=${after.inp.p75}ms
-
-    Consider Core Web Vitals thresholds:
-    - LCP: Good ≤2.5s, Needs Improvement ≤4s, Poor >4s
-    - CLS: Good ≤0.1, Needs Improvement ≤0.25, Poor >0.25
-    - INP: Good ≤200ms, Needs Improvement ≤500ms, Poor >500ms
-  `;
-
-  return analyzeWithWoodWide(
-    question,
-    { before, after },
-    useMock
-  );
 }
 
 /**

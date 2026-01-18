@@ -1,24 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Flow, Step, StepResult, Viewport } from './types.js';
+import * as path from 'node:path';
 
-// Mock Playwright
-vi.mock('playwright', () => ({
-  chromium: {
-    launch: vi.fn().mockResolvedValue({
-      newPage: vi.fn().mockResolvedValue({
-        setViewportSize: vi.fn().mockResolvedValue(undefined),
-        goto: vi.fn().mockResolvedValue(undefined),
-        click: vi.fn().mockResolvedValue(undefined),
-        fill: vi.fn().mockResolvedValue(undefined),
-        screenshot: vi.fn().mockResolvedValue(Buffer.from('fake-screenshot')),
-        waitForTimeout: vi.fn().mockResolvedValue(undefined),
-        evaluate: vi.fn().mockResolvedValue(undefined),
-        close: vi.fn().mockResolvedValue(undefined),
-      }),
-      close: vi.fn().mockResolvedValue(undefined),
-    }),
+// Mock security module to allow test paths
+vi.mock('./security.js', () => ({
+  validatePath: vi.fn((p: string) => path.resolve(p)),
+  validateOutputDirectory: vi.fn((p: string) => path.resolve(p)),
+  validateInputFile: vi.fn((p: string) => path.resolve(p)),
+  PathSecurityError: class extends Error {
+    constructor(msg: string) { super(msg); this.name = 'PathSecurityError'; }
   },
 }));
+
+// Mock Playwright with browser context support (for browser pooling)
+vi.mock('playwright', () => {
+  const mockPage = {
+    setViewportSize: vi.fn().mockResolvedValue(undefined),
+    goto: vi.fn().mockResolvedValue(undefined),
+    click: vi.fn().mockResolvedValue(undefined),
+    fill: vi.fn().mockResolvedValue(undefined),
+    screenshot: vi.fn().mockResolvedValue(Buffer.from('fake-screenshot')),
+    waitForTimeout: vi.fn().mockResolvedValue(undefined),
+    evaluate: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const mockContext = {
+    newPage: vi.fn().mockResolvedValue(mockPage),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+
+  return {
+    chromium: {
+      launch: vi.fn().mockResolvedValue({
+        newContext: vi.fn().mockResolvedValue(mockContext),
+        newPage: vi.fn().mockResolvedValue(mockPage),
+        close: vi.fn().mockResolvedValue(undefined),
+      }),
+    },
+  };
+});
 
 import { executeStep, executeFlow, DEFAULT_VIEWPORT } from './runner.js';
 
