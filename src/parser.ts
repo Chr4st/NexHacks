@@ -1,6 +1,7 @@
 import * as yaml from 'yaml';
 import * as fs from 'node:fs';
 import { FlowSchema, type Flow } from './types.js';
+import { validateInputFile, validatePath, PathSecurityError } from './security.js';
 
 // Dangerous YAML constructs that could enable code execution
 const DANGEROUS_PATTERNS = ['!!python', '!!js', '!<tag:', '!!ruby', '!!perl'];
@@ -64,18 +65,24 @@ export function parseFlow(content: string): ParseResult<Flow> {
  * Reads and parses a flow from a YAML file.
  *
  * @param filePath - Path to the YAML flow file
+ * @param baseDir - Optional base directory for path validation (defaults to cwd)
  * @returns ParseResult with either validated Flow or error message
  */
-export function parseFlowFile(filePath: string): ParseResult<Flow> {
+export function parseFlowFile(filePath: string, baseDir?: string): ParseResult<Flow> {
   try {
-    if (!fs.existsSync(filePath)) {
-      return { success: false, error: `Flow file not found: ${filePath}` };
-    }
+    // Validate path is within allowed directory
+    const validatedPath = validateInputFile(filePath, { baseDir });
 
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = fs.readFileSync(validatedPath, 'utf-8');
     return parseFlow(content);
   } catch (error) {
+    if (error instanceof PathSecurityError) {
+      return { success: false, error: 'Invalid file path' };
+    }
     if (error instanceof Error) {
+      if (error.message.includes('ENOENT')) {
+        return { success: false, error: 'Flow file not found' };
+      }
       return { success: false, error: `Failed to read file: ${error.message}` };
     }
     return { success: false, error: 'Failed to read flow file' };
@@ -86,16 +93,28 @@ export function parseFlowFile(filePath: string): ParseResult<Flow> {
  * Discovers all flow files in a directory.
  *
  * @param directory - Directory to search for .yaml and .yml files
+ * @param baseDir - Optional base directory for path validation (defaults to cwd)
  * @returns Array of file paths
  */
-export function discoverFlows(directory: string): string[] {
-  if (!fs.existsSync(directory)) {
-    return [];
-  }
+export function discoverFlows(directory: string, baseDir?: string): string[] {
+  try {
+    // Validate directory path is within allowed directory
+    const validatedDir = validatePath(directory, { baseDir, allowNonExistent: false });
 
-  const entries = fs.readdirSync(directory, { withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isFile())
-    .filter((entry) => entry.name.endsWith('.yaml') || entry.name.endsWith('.yml'))
-    .map((entry) => `${directory}/${entry.name}`);
+    if (!fs.existsSync(validatedDir)) {
+      return [];
+    }
+
+    const entries = fs.readdirSync(validatedDir, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile())
+      .filter((entry) => entry.name.endsWith('.yaml') || entry.name.endsWith('.yml'))
+      .map((entry) => `${validatedDir}/${entry.name}`);
+  } catch (error) {
+    if (error instanceof PathSecurityError) {
+      // Return empty array for invalid paths - don't expose path info
+      return [];
+    }
+    throw error;
+  }
 }

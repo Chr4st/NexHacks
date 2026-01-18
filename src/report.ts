@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { FlowRunResult, StepResult, CruxMetrics } from './types.js';
+import { validateOutputDirectory, validatePath } from './security.js';
 
 /**
  * Convert step result to HTML.
@@ -349,21 +350,28 @@ export function generateReport(run: FlowRunResult, cruxMetrics?: CruxMetrics): s
  * @param run - Flow run result
  * @param outputDir - Directory to save report
  * @param cruxMetrics - Optional CrUX metrics
+ * @param baseDir - Optional base directory for path validation (defaults to cwd)
  * @returns Path to saved report
  */
 export function saveReport(
   run: FlowRunResult,
   outputDir: string,
-  cruxMetrics?: CruxMetrics
+  cruxMetrics?: CruxMetrics,
+  baseDir?: string
 ): string {
-  // Ensure directory exists
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  // Validate and ensure output directory exists within allowed boundaries
+  const validatedDir = validateOutputDirectory(outputDir, { baseDir });
 
   const html = generateReport(run, cruxMetrics);
-  const filename = `${run.flowName}-${Date.now()}.html`;
-  const filepath = path.join(outputDir, filename);
+  // Sanitize flow name for filesystem safety
+  const safeFlowName = run.flowName.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const filename = `${safeFlowName}-${Date.now()}.html`;
+
+  // Validate the full file path
+  const filepath = validatePath(path.join(validatedDir, filename), {
+    baseDir,
+    allowNonExistent: true,
+  });
 
   fs.writeFileSync(filepath, html, 'utf-8');
 

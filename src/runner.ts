@@ -1,7 +1,8 @@
-import { chromium, type Page, type Browser } from 'playwright';
+import { chromium, type Page, type Browser, type BrowserContext } from 'playwright';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Flow, Step, StepResult, FlowRunResult, Viewport } from './types.js';
+import { validateOutputDirectory, validatePath } from './security.js';
 
 export const DEFAULT_VIEWPORT: Viewport = {
   width: 1280,
@@ -9,6 +10,33 @@ export const DEFAULT_VIEWPORT: Viewport = {
 };
 
 const DEFAULT_TIMEOUT = 30000;
+
+// Browser singleton for pooling - reuse browser instance across flows
+let browserInstance: Browser | null = null;
+
+/**
+ * Gets or creates a shared browser instance.
+ * Uses singleton pattern for browser pooling to avoid O(n) launch overhead.
+ */
+async function getBrowser(): Promise<Browser> {
+  if (!browserInstance) {
+    browserInstance = await chromium.launch({
+      headless: true,
+    });
+  }
+  return browserInstance;
+}
+
+/**
+ * Closes the shared browser instance.
+ * Should be called on CLI exit for proper cleanup.
+ */
+export async function closeBrowser(): Promise<void> {
+  if (browserInstance) {
+    await browserInstance.close();
+    browserInstance = null;
+  }
+}
 
 /**
  * Executes a single step in a flow.
@@ -55,13 +83,14 @@ export async function executeStep(
         break;
 
       case 'screenshot': {
-        // Ensure screenshot directory exists
-        if (!fs.existsSync(screenshotDir)) {
-          fs.mkdirSync(screenshotDir, { recursive: true });
-        }
+        // Validate and ensure screenshot directory exists within allowed boundaries
+        const validatedScreenshotDir = validateOutputDirectory(screenshotDir);
 
         const filename = `step-${stepIndex}-${Date.now()}.png`;
-        screenshotPath = path.join(screenshotDir, filename);
+        // Validate the full screenshot path as well
+        screenshotPath = validatePath(path.join(validatedScreenshotDir, filename), {
+          allowNonExistent: true,
+        });
         const buffer = await page.screenshot({ fullPage: false });
         fs.writeFileSync(screenshotPath, buffer);
         screenshotBase64 = buffer.toString('base64');
@@ -105,34 +134,43 @@ export async function executeStep(
 
 /**
  * Executes a complete flow and returns results.
+ * Uses shared browser instance with isolated context per flow.
  *
  * @param flow - Flow definition to execute
  * @param outputDir - Directory for screenshots and artifacts
+ * @param baseDir - Optional base directory for path validation (defaults to cwd)
  * @returns FlowRunResult with all step results
  */
 export async function executeFlow(
   flow: Flow,
-  outputDir: string
+  outputDir: string,
+  baseDir?: string
 ): Promise<FlowRunResult> {
   const startedAt = new Date().toISOString();
   const startTime = Date.now();
   const viewport = flow.viewport ?? DEFAULT_VIEWPORT;
 
-  // Create unique directory for this run
-  const runId = `${flow.name}-${Date.now()}`;
-  const screenshotDir = path.join(outputDir, runId);
+  // Validate output directory is within allowed boundaries
+  const validatedOutputDir = validateOutputDirectory(outputDir, { baseDir });
 
-  let browser: Browser | null = null;
+  // Create unique directory for this run - sanitize flow name for filesystem
+  const safeFlowName = flow.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const runId = `${safeFlowName}-${Date.now()}`;
+  const screenshotDir = path.join(validatedOutputDir, runId);
+
+  let context: BrowserContext | null = null;
   const stepResults: StepResult[] = [];
 
   try {
-    // Launch browser
-    browser = await chromium.launch({
-      headless: true,
+    // Get shared browser instance (pooled)
+    const browser = await getBrowser();
+
+    // Create new context for isolation between flows
+    context = await browser.newContext({
+      viewport,
     });
 
-    const page = await browser.newPage();
-    await page.setViewportSize(viewport);
+    const page = await context.newPage();
 
     // Navigate to initial URL
     await page.goto(flow.url, { waitUntil: 'networkidle', timeout: DEFAULT_TIMEOUT });
@@ -162,8 +200,9 @@ export async function executeFlow(
       durationMs: Date.now() - startTime,
     });
   } finally {
-    if (browser) {
-      await browser.close();
+    // Close context (not browser) - browser is pooled
+    if (context) {
+      await context.close();
     }
   }
 

@@ -1,5 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import type { AnalysisResult } from './types.js';
+
+/**
+ * Schema for validating the Claude vision API response JSON content.
+ * This validates the parsed JSON that Claude returns, not the raw API response.
+ */
+const VisionResponseJsonSchema = z.object({
+  canComplete: z.boolean(),
+  confidence: z.number().min(0).max(100).default(0),
+  issues: z.array(z.string()).default([]),
+  suggestions: z.array(z.string()).default([]),
+});
 
 const MODEL = 'claude-3-5-sonnet-20241022';
 const MAX_RETRIES = 2;
@@ -50,47 +62,54 @@ Return ONLY the JSON, no additional text.`;
  * @returns Parsed AnalysisResult
  */
 export function parseVisionResponse(responseText: string): AnalysisResult {
-  try {
-    // Try to extract JSON from response (in case there's extra text)
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON found in response');
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]) as {
-      canComplete?: boolean;
-      confidence?: number;
-      issues?: string[];
-      suggestions?: string[];
-    };
-
-    const canComplete = parsed.canComplete ?? false;
-    const rawConfidence = parsed.confidence ?? 0;
-    const confidence = Math.max(0, Math.min(100, rawConfidence));
-    const issues = parsed.issues ?? [];
-    const suggestions = parsed.suggestions ?? [];
-
-    if (canComplete) {
-      return {
-        status: 'pass',
-        confidence,
-        reasoning: `User can complete the intended action with ${confidence}% confidence.`,
-      };
-    }
-
+  // Try to extract JSON from response (in case there's extra text)
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
     return {
-      status: 'fail',
-      confidence,
-      reasoning: `User may struggle to complete the intended action. ${issues.length} issues found.`,
-      issues,
-      suggestions,
+      status: 'error',
+      error: 'Failed to parse vision response: No JSON found in response',
     };
+  }
+
+  let rawJson: unknown;
+  try {
+    rawJson = JSON.parse(jsonMatch[0]);
   } catch (error) {
     return {
       status: 'error',
-      error: `Failed to parse vision response: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Failed to parse vision response: Invalid JSON - ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+
+  // Validate the parsed JSON against our schema
+  const parseResult = VisionResponseJsonSchema.safeParse(rawJson);
+  if (!parseResult.success) {
+    const errorMessages = parseResult.error.errors
+      .map((e) => `${e.path.join('.')}: ${e.message}`)
+      .join(', ');
+    return {
+      status: 'error',
+      error: `Failed to parse vision response: Invalid response shape - ${errorMessages}`,
+    };
+  }
+
+  const { canComplete, confidence, issues, suggestions } = parseResult.data;
+
+  if (canComplete) {
+    return {
+      status: 'pass',
+      confidence,
+      reasoning: `User can complete the intended action with ${confidence}% confidence.`,
+    };
+  }
+
+  return {
+    status: 'fail',
+    confidence,
+    reasoning: `User may struggle to complete the intended action. ${issues.length} issues found.`,
+    issues,
+    suggestions,
+  };
 }
 
 /**
@@ -178,22 +197,4 @@ export async function analyzeScreenshot(
     status: 'error',
     error: 'Vision analysis failed unexpectedly',
   };
-}
-
-/**
- * Analyzes multiple screenshots in parallel.
- *
- * @param screenshots - Array of {base64, intent, assertion} objects
- * @returns Array of AnalysisResults
- */
-export async function analyzeScreenshots(
-  screenshots: Array<{
-    base64: string;
-    intent: string;
-    assertion?: string;
-  }>
-): Promise<AnalysisResult[]> {
-  return Promise.all(
-    screenshots.map((s) => analyzeScreenshot(s.base64, s.intent, s.assertion))
-  );
 }

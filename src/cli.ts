@@ -4,15 +4,32 @@ import { Command } from 'commander';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { parseFlowFile, discoverFlows } from './parser.js';
-import { executeFlow } from './runner.js';
+import { executeFlow, closeBrowser } from './runner.js';
 import { analyzeScreenshot } from './vision.js';
 import { initTracing, traceFlowRun, traceVisionAnalysis, shutdownTracing } from './tracing.js';
 import { getCruxMetrics, formatCruxMetrics } from './metrics.js';
 import { saveReport } from './report.js';
 import type { FlowRunResult, OutputFormat, Config } from './types.js';
 import { ConfigSchema } from './types.js';
+import { validatePath, validateOutputDirectory, validateInputFile, PathSecurityError } from './security.js';
 
 const VERSION = '0.1.0';
+
+// Cleanup browser pool on exit
+async function cleanup(): Promise<void> {
+  await closeBrowser();
+}
+
+// Handle process exit signals for proper browser cleanup
+process.on('SIGINT', async () => {
+  await cleanup();
+  process.exit(130);
+});
+
+process.on('SIGTERM', async () => {
+  await cleanup();
+  process.exit(143);
+});
 
 const program = new Command();
 
@@ -51,29 +68,27 @@ program
   .action(async (options: { format: OutputFormat }) => {
     const format = options.format;
 
-    // Create directories
-    const flowsDir = './flows';
-    const reportsDir = './reports';
+    try {
+      // Create directories with path validation
+      const flowsDir = './flows';
+      const reportsDir = './reports';
 
-    if (!fs.existsSync(flowsDir)) {
-      fs.mkdirSync(flowsDir, { recursive: true });
-    }
-    if (!fs.existsSync(reportsDir)) {
-      fs.mkdirSync(reportsDir, { recursive: true });
-    }
+      // Validate and create directories within project bounds
+      const validatedFlowsDir = validateOutputDirectory(flowsDir);
+      validateOutputDirectory(reportsDir); // Creates directory as side effect
 
-    // Create config file
-    const config: Config = {
-      version: 1,
-      flowsDir,
-      reportsDir,
-    };
+      // Create config file
+      const config: Config = {
+        version: 1,
+        flowsDir,
+        reportsDir,
+      };
 
-    const configPath = './flowguard.config.json';
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+      const configPath = validatePath('./flowguard.config.json', { allowNonExistent: true });
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-    // Create example flow
-    const exampleFlow = `# Example FlowGuard flow
+      // Create example flow
+      const exampleFlow = `# Example FlowGuard flow
 name: example-homepage
 intent: "User can see the main headline and find the primary call-to-action"
 url: https://example.com
@@ -85,46 +100,52 @@ steps:
     assert: "Main headline is visible and CTA button is prominent"
 `;
 
-    const examplePath = path.join(flowsDir, 'example.yaml');
-    if (!fs.existsSync(examplePath)) {
-      fs.writeFileSync(examplePath, exampleFlow);
-    }
+      const examplePath = validatePath(path.join(validatedFlowsDir, 'example.yaml'), { allowNonExistent: true });
+      if (!fs.existsSync(examplePath)) {
+        fs.writeFileSync(examplePath, exampleFlow);
+      }
 
-    // Create .gitignore additions
-    const gitignoreContent = `
+      // Create .gitignore additions
+      const gitignoreContent = `
 # FlowGuard
 .flowguard/
 reports/*.html
 `;
-    const gitignorePath = './.gitignore';
-    if (fs.existsSync(gitignorePath)) {
-      const existing = fs.readFileSync(gitignorePath, 'utf-8');
-      if (!existing.includes('.flowguard/')) {
-        fs.appendFileSync(gitignorePath, gitignoreContent);
+      const gitignorePath = validatePath('./.gitignore', { allowNonExistent: true });
+      if (fs.existsSync(gitignorePath)) {
+        const existing = fs.readFileSync(gitignorePath, 'utf-8');
+        if (!existing.includes('.flowguard/')) {
+          fs.appendFileSync(gitignorePath, gitignoreContent);
+        }
       }
-    }
 
-    if (format === 'json') {
-      output({
-        success: true,
-        config: configPath,
-        flowsDir,
-        reportsDir,
-        exampleFlow: examplePath,
-      }, format);
-    } else {
-      console.log('FlowGuard initialized successfully!');
-      console.log('');
-      console.log('Created:');
-      console.log(`  ${configPath} - Configuration file`);
-      console.log(`  ${flowsDir}/ - Flow definitions directory`);
-      console.log(`  ${reportsDir}/ - Report output directory`);
-      console.log(`  ${examplePath} - Example flow`);
-      console.log('');
-      console.log('Next steps:');
-      console.log('  1. Edit flows/example.yaml with your URL and intent');
-      console.log('  2. Set ANTHROPIC_API_KEY environment variable');
-      console.log('  3. Run: flowguard run');
+      if (format === 'json') {
+        output({
+          success: true,
+          config: configPath,
+          flowsDir,
+          reportsDir,
+          exampleFlow: examplePath,
+        }, format);
+      } else {
+        console.log('FlowGuard initialized successfully!');
+        console.log('');
+        console.log('Created:');
+        console.log(`  ${configPath} - Configuration file`);
+        console.log(`  ${flowsDir}/ - Flow definitions directory`);
+        console.log(`  ${reportsDir}/ - Report output directory`);
+        console.log(`  ${examplePath} - Example flow`);
+        console.log('');
+        console.log('Next steps:');
+        console.log('  1. Edit flows/example.yaml with your URL and intent');
+        console.log('  2. Set ANTHROPIC_API_KEY environment variable');
+        console.log('  3. Run: flowguard run');
+      }
+    } catch (error) {
+      if (error instanceof PathSecurityError) {
+        outputError('Invalid path specified', format);
+      }
+      throw error;
     }
   });
 
@@ -147,25 +168,47 @@ program
   }) => {
     const format = options.format;
 
+    // Validate output directory early
+    let validatedOutputDir: string;
+    try {
+      validatedOutputDir = validateOutputDirectory(options.output);
+    } catch (error) {
+      if (error instanceof PathSecurityError) {
+        outputError('Invalid output directory path', format);
+      }
+      throw error;
+    }
+
     // Find flows to run
     let flowFiles: string[] = [];
 
     if (flowArg) {
-      if (!fs.existsSync(flowArg)) {
-        outputError(`Flow file not found: ${flowArg}`, format);
+      try {
+        // Validate the flow file path
+        const validatedFlowPath = validateInputFile(flowArg);
+        flowFiles = [validatedFlowPath];
+      } catch (error) {
+        if (error instanceof PathSecurityError) {
+          outputError('Invalid flow file path', format);
+        }
+        outputError('Flow file not found', format);
       }
-      flowFiles = [flowArg];
     } else {
       // Load config or use defaults
       const configPath = './flowguard.config.json';
       let flowsDir = './flows';
 
-      if (fs.existsSync(configPath)) {
-        const configContent = fs.readFileSync(configPath, 'utf-8');
-        const parsed = ConfigSchema.safeParse(JSON.parse(configContent));
-        if (parsed.success) {
-          flowsDir = parsed.data.flowsDir;
+      try {
+        const validatedConfigPath = validatePath(configPath, { allowNonExistent: true });
+        if (fs.existsSync(validatedConfigPath)) {
+          const configContent = fs.readFileSync(validatedConfigPath, 'utf-8');
+          const parsed = ConfigSchema.safeParse(JSON.parse(configContent));
+          if (parsed.success) {
+            flowsDir = parsed.data.flowsDir;
+          }
         }
+      } catch (error) {
+        // Use default flowsDir if config is invalid
       }
 
       flowFiles = discoverFlows(flowsDir);
@@ -213,7 +256,7 @@ program
 
       // Execute flow with optional tracing
       const runFlow = async (): Promise<FlowRunResult> => {
-        const result = await executeFlow(flow, options.output);
+        const result = await executeFlow(flow, validatedOutputDir);
 
         // Run vision analysis on screenshot steps
         if (options.vision) {
@@ -274,7 +317,7 @@ program
       const cruxMetrics = await getCruxMetrics(flow.url, options.mock);
 
       // Generate report
-      const reportPath = saveReport(flowResult, options.output, cruxMetrics ?? undefined);
+      const reportPath = saveReport(flowResult, validatedOutputDir, cruxMetrics ?? undefined);
 
       if (format === 'text') {
         const icon = flowResult.verdict === 'pass' ? '✅' : flowResult.verdict === 'fail' ? '❌' : '⚠️';
@@ -329,6 +372,9 @@ program
       console.log(`Summary: ${passed} passed, ${failed} failed, ${errors} errors`);
     }
 
+    // Cleanup browser pool before exit
+    await cleanup();
+
     // Set exit code based on results
     const allPassed = results.every((r) => r.verdict === 'pass');
     process.exit(allPassed ? 0 : 1);
@@ -345,17 +391,34 @@ program
     const format = options.format;
     const reportsDir = './reports';
 
-    if (!fs.existsSync(reportsDir)) {
+    // Validate reports directory path
+    let validatedReportsDir: string;
+    try {
+      validatedReportsDir = validatePath(reportsDir, { allowNonExistent: false });
+    } catch (error) {
+      if (error instanceof PathSecurityError) {
+        outputError('Invalid reports directory path', format);
+      }
       outputError('No reports directory found. Run "flowguard run" first.', format);
     }
 
-    const reports = fs.readdirSync(reportsDir)
+    const reports = fs.readdirSync(validatedReportsDir)
       .filter((f) => f.endsWith('.html'))
-      .map((f) => ({
-        name: f,
-        path: path.join(reportsDir, f),
-        mtime: fs.statSync(path.join(reportsDir, f)).mtime,
-      }))
+      .map((f) => {
+        // Validate each report file path
+        const reportPath = path.join(validatedReportsDir, f);
+        try {
+          validatePath(reportPath, { allowNonExistent: false });
+          return {
+            name: f,
+            path: reportPath,
+            mtime: fs.statSync(reportPath).mtime,
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null)
       .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 
     if (reports.length === 0) {
@@ -380,9 +443,22 @@ program
     }
 
     if (options.open) {
-      const { exec } = await import('node:child_process');
-      const openCommand = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-      exec(`${openCommand} "${latest.path}"`);
+      const { spawn } = await import('node:child_process');
+      let openCommand: string;
+      let args: string[];
+
+      if (process.platform === 'darwin') {
+        openCommand = 'open';
+        args = [latest.path];
+      } else if (process.platform === 'win32') {
+        openCommand = 'cmd';
+        args = ['/c', 'start', '', latest.path];
+      } else {
+        openCommand = 'xdg-open';
+        args = [latest.path];
+      }
+
+      spawn(openCommand, args, { detached: true, stdio: 'ignore' }).unref();
 
       if (format === 'json') {
         output({ opened: latest.path }, format);
