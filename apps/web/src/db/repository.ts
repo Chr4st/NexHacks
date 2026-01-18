@@ -10,8 +10,8 @@ import {
   UXRisk,
   FlowExecutionDataDocument,
   FlowExecutionData
-} from './schemas.js';
-import { validateString, validateNumber, validateSearchQuery, escapeRegex } from './validators.js';
+} from './schemas';
+import { validateString, validateNumber, validateSearchQuery, escapeRegex } from './validators';
 
 /**
  * Validate tenant ID format to prevent injection.
