@@ -9,7 +9,7 @@ export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
     return '<svg viewBox="0 0 800 300" class="chart-canvas"><text x="400" y="150" text-anchor="middle" fill="#6b7280">No data available</text></svg>';
   }
 
-  if (data.length === 1) {
+  if (data.length === 1 && data[0]) {
     // Single point - show as a horizontal line
     const width = 800;
     const height = 300;
@@ -27,7 +27,7 @@ export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
         <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#3b82f6" stroke-width="3" stroke-dasharray="5,5" />
         <circle cx="${x}" cy="${y}" r="6" fill="#3b82f6" />
         <text x="${x}" y="${y - 10}" text-anchor="middle" font-size="12" fill="#6b7280">${validRate.toFixed(0)}%</text>
-        <text x="${x}" y="${height - padding + 25}" text-anchor="middle" font-size="11" fill="#6b7280">${data[0].date}</text>
+        <text x="${x}" y="${height - padding + 25}" text-anchor="middle" font-size="11" fill="#6b7280">${data[0].date || ''}</text>
       </svg>
     `;
   }
@@ -79,7 +79,7 @@ export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
   }).join('');
 
   // Generate data points
-  const dataPoints = points.map((p, i) => {
+  const dataPoints = points.map((p) => {
     const [x, y] = p.split(',').map(Number);
     return `
       <circle

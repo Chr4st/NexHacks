@@ -1,9 +1,11 @@
 import { MongoClient, Db } from 'mongodb';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 export class DatabaseClient {
   private static instance: DatabaseClient;
   private client: MongoClient | null = null;
   private db: Db | null = null;
+  private memoryServer: MongoMemoryServer | null = null;
 
   private constructor() {
     // Constructor is intentionally empty - URI is checked in connect()
@@ -18,9 +20,19 @@ export class DatabaseClient {
 
   async connect(): Promise<Db> {
     if (!this.db) {
-      const uri = process.env.MONGODB_URI;
+      const localTesting = process.env.LOCAL_TESTING === 'true' || !process.env.MONGODB_URI;
+      let uri = process.env.MONGODB_URI;
+
+      // Use in-memory MongoDB for local testing if no URI provided
+      if (!uri && localTesting) {
+        console.log('⚠️  No MONGODB_URI found, using in-memory MongoDB for local testing');
+        this.memoryServer = await MongoMemoryServer.create();
+        uri = this.memoryServer.getUri();
+        console.log('✅ In-memory MongoDB started');
+      }
+
       if (!uri) {
-        throw new Error('MONGODB_URI environment variable is required');
+        throw new Error('MONGODB_URI environment variable is required. Set LOCAL_TESTING=true to use in-memory database.');
       }
 
       // Validate URI format
@@ -29,9 +41,10 @@ export class DatabaseClient {
       }
 
       const dbName = process.env.MONGODB_DATABASE || 'flowguard';
+      const useMockMongo = localTesting && !process.env.MONGODB_URI;
 
       this.client = new MongoClient(uri, {
-        tls: process.env.NODE_ENV === 'production',
+        tls: process.env.NODE_ENV === 'production' && !useMockMongo,
         tlsAllowInvalidCertificates: false,
         maxPoolSize: 50,
         minPoolSize: 10,
@@ -51,6 +64,12 @@ export class DatabaseClient {
       await this.client.close();
       this.client = null;
       this.db = null;
+    }
+    if (this.memoryServer) {
+      await this.memoryServer.stop();
+      this.memoryServer = null;
+      console.log('✅ In-memory MongoDB stopped');
+    } else {
       console.log('✅ MongoDB disconnected');
     }
   }

@@ -18,20 +18,33 @@ export function initTracing(phoenixEndpoint?: string): void {
     return;
   }
 
-  const endpoint = phoenixEndpoint ?? process.env.PHOENIX_ENDPOINT ?? 'http://localhost:6006/v1/traces';
+  const endpoint = phoenixEndpoint ?? process.env.PHOENIX_ENDPOINT;
+  const localTesting = process.env.LOCAL_TESTING === 'true';
 
-  provider = new NodeTracerProvider();
+  // Skip tracing if Phoenix is disabled or endpoint not provided
+  if (!endpoint || localTesting) {
+    console.log('[FlowGuard] Tracing disabled (Phoenix endpoint not configured or local testing mode)');
+    isInitialized = true; // Mark as initialized to prevent retries
+    return;
+  }
 
-  const exporter = new OTLPTraceExporter({
-    url: endpoint,
-    headers: {},
-  });
+  try {
+    provider = new NodeTracerProvider();
 
-  provider.addSpanProcessor(new BatchSpanProcessor(exporter));
-  provider.register();
+    const exporter = new OTLPTraceExporter({
+      url: endpoint,
+      headers: {},
+    });
 
-  isInitialized = true;
-  console.log(`[FlowGuard] Tracing initialized, sending to ${endpoint}`);
+    provider.addSpanProcessor(new BatchSpanProcessor(exporter));
+    provider.register();
+
+    isInitialized = true;
+    console.log(`[FlowGuard] Tracing initialized, sending to ${endpoint}`);
+  } catch (error) {
+    console.warn(`[FlowGuard] Failed to initialize tracing: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    isInitialized = true; // Mark as initialized to prevent retries
+  }
 }
 
 /**

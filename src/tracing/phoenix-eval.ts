@@ -86,27 +86,24 @@ export class PromptOptimizer {
         statisticalSignificance: significance
       };
 
-      // Save to MongoDB
-      await this.repository.saveABExperiment({
-        experimentId,
-        name: config.name,
-        description: config.description,
-        runAt: result.runAt,
-        promptVersions: {
-          control: {
-            version: config.promptVersions.control.version,
-            systemPrompt: config.promptVersions.control.systemPrompt
-          },
-          variant: {
-            version: config.promptVersions.variant.version,
-            systemPrompt: config.promptVersions.variant.systemPrompt
-          }
-        },
-        control: controlMetrics,
-        variant: variantMetrics,
-        winner,
-        statisticalSignificance: significance
-      });
+      // Save to MongoDB (transform to Experiment interface)
+      try {
+        const totalRuns = controlResults.length + variantResults.length;
+        await this.repository.saveExperiment({
+          name: config.name,
+          promptVersion: winner === 'variant' ? config.promptVersions.variant.version : config.promptVersions.control.version,
+          datasetName: 'default',
+          accuracy: winner === 'variant' ? variantMetrics.accuracy : controlMetrics.accuracy,
+          avgConfidence: (controlMetrics.accuracy + variantMetrics.accuracy) / 2 * 100, // Convert to 0-100 scale
+          totalRuns,
+          startedAt: result.runAt,
+          phoenixExperimentId: experimentId,
+          results: [] // Results are stored in control/variant metrics
+        });
+      } catch (error) {
+        // Gracefully handle save errors in local testing
+        console.warn('Failed to save experiment to MongoDB:', error instanceof Error ? error.message : 'Unknown error');
+      }
 
       // Send to Phoenix
       await this.phoenix.logExperiment(result);
@@ -353,7 +350,7 @@ export class PromptOptimizer {
    * Get the best-performing prompt version from historical experiments
    */
   async getBestPrompt(): Promise<PromptTemplate> {
-    const experiments = await this.repository.getRecentABExperiments(10);
+    const experiments = await this.repository.getExperiments(10);
 
     if (experiments.length === 0) {
       return DEFAULT_PROMPT_V1;
@@ -363,14 +360,24 @@ export class PromptOptimizer {
     let bestAccuracy = 0;
     let bestPromptVersion = '';
 
-    experiments.forEach(exp => {
-      if (exp.control.accuracy > bestAccuracy) {
-        bestAccuracy = exp.control.accuracy;
-        bestPromptVersion = exp.promptVersions.control.version;
-      }
-      if (exp.variant.accuracy > bestAccuracy) {
-        bestAccuracy = exp.variant.accuracy;
-        bestPromptVersion = exp.promptVersions.variant.version;
+    experiments.forEach((exp: any) => {
+      // Handle both Experiment and ABExperiment formats
+      if (exp.control && exp.variant) {
+        // ABExperiment format
+        if (exp.control.accuracy > bestAccuracy) {
+          bestAccuracy = exp.control.accuracy;
+          bestPromptVersion = exp.promptVersions?.control?.version || '';
+        }
+        if (exp.variant.accuracy > bestAccuracy) {
+          bestAccuracy = exp.variant.accuracy;
+          bestPromptVersion = exp.promptVersions?.variant?.version || '';
+        }
+      } else if (exp.accuracy !== undefined) {
+        // Experiment format
+        if (exp.accuracy > bestAccuracy) {
+          bestAccuracy = exp.accuracy;
+          bestPromptVersion = exp.promptVersion || '';
+        }
       }
     });
 

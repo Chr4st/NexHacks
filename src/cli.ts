@@ -227,14 +227,21 @@ program
     }
 
     let repository: FlowGuardRepository | null = null;
-    if (process.env.MONGODB_URI) {
+    const localTesting = process.env.LOCAL_TESTING === 'true' || !process.env.MONGODB_URI;
+    if (process.env.MONGODB_URI || localTesting) {
       try {
         await db.connect();
         repository = new FlowGuardRepository(db.getDb());
       } catch (error) {
-        console.error('Failed to connect to MongoDB:', error);
-        outputError('Failed to connect to MongoDB for UX risk persistence.', format);
+        if (localTesting) {
+          console.warn('⚠️  MongoDB connection failed, continuing without persistence (local testing mode)');
+        } else {
+          console.error('Failed to connect to MongoDB:', error);
+          outputError('Failed to connect to MongoDB for UX risk persistence.', format);
+        }
       }
+    } else if (format === 'text') {
+      console.log('⚠️  No MongoDB configured, skipping persistence (use LOCAL_TESTING=true for in-memory DB)');
     }
 
     const results: FlowRunResult[] = [];
