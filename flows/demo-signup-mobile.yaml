@@ -1,0 +1,12 @@
+# FlowGuard Demo: Mobile Signup Flow
+# This flow tests whether a user on mobile can find and complete signup
+
+name: mobile-signup-flow
+intent: "User on mobile can clearly find and tap the signup button without confusion"
+url: https://example.com
+viewport:
+  width: 375
+  height: 667
+steps:
+  - action: screenshot
+    assert: "The signup or register button is prominently visible above the fold on mobile"
