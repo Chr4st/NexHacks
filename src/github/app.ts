@@ -58,12 +58,6 @@ export class GitHubAppClient {
       return this.installationClients.get(installationId)!;
     }
 
-    const auth = createAppAuth({
-      appId: this.appId,
-      privateKey: this.privateKey,
-      installationId
-    });
-
     const octokit = new Octokit({
       authStrategy: createAppAuth,
       auth: {
