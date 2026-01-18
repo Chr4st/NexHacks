@@ -24,9 +24,17 @@ function calculateSuccessRate(history: FlowRunResult[]): number {
 function convertToTrendData(history: FlowRunResult[]): TrendDataPoint[] {
   return history.map(run => {
     const passedSteps = run.steps.filter(s => s.success).length;
-    const successRate = run.steps.length > 0 
-      ? (passedSteps / run.steps.length) * 100 
-      : 0;
+    // Calculate success rate, ensuring it's a valid number
+    let successRate = 0;
+    if (run.steps.length > 0) {
+      successRate = (passedSteps / run.steps.length) * 100;
+      // Clamp to valid range and handle NaN/Infinity
+      if (isNaN(successRate) || !isFinite(successRate)) {
+        successRate = 0;
+      } else {
+        successRate = Math.max(0, Math.min(100, successRate));
+      }
+    }
     
     return {
       date: new Date(run.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),

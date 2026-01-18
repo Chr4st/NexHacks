@@ -4,12 +4,15 @@ import type { SummaryData } from '../types.js';
  * Generate summary cards section
  */
 export function generateSummary(data: SummaryData): string {
-  const successRate = data.totalSteps > 0 
-    ? ((data.passedSteps / data.totalSteps) * 100).toFixed(0)
-    : '0';
+  // Calculate success rate as number first, then format
+  const successRateNum = data.totalSteps > 0 
+    ? (data.passedSteps / data.totalSteps) * 100
+    : 0;
+  const successRate = successRateNum.toFixed(0);
   
+  // Calculate trend using numeric values
   const trend = data.historicalSuccessRate !== undefined
-    ? data.historicalSuccessRate - parseFloat(successRate)
+    ? data.historicalSuccessRate - successRateNum
     : 0;
 
   const trendIcon = trend >= 0 ? '↑' : '↓';
