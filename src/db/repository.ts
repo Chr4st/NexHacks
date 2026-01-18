@@ -516,4 +516,13 @@ export class FlowGuardRepository {
 
     return results;
   }
+
+  // ==================== UX Risks ====================
+
+  async saveUXRisk(risk: Omit<UXRisk, '_id' | 'timestamp'>): Promise<void> {
+    await this.uxRisks.insertOne({
+      ...risk,
+      timestamp: new Date(),
+    } as UXRisk);
+  }
 }
