@@ -1,0 +1,12 @@
+# FlowGuard Test: Demo App with Intentional UX Issues
+# This flow demonstrates FlowGuard catching real UX problems
+
+name: demo-app-signup
+intent: "User can easily find and click the signup button on the landing page"
+url: file:///Users/jibril/Desktop/Coding/NexHacks/demo-app/index.html
+viewport:
+  width: 375
+  height: 667
+steps:
+  - action: screenshot
+    assert: "The signup button is prominently visible with good contrast and appears above the fold"
