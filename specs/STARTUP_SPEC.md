@@ -95,3 +95,16 @@ FlowGuard **extends** existing E2E testing frameworks rather than replacing them
    - UX risk assertions
 
 5. Tests run in CI like any standard E2E suite
+```
+
+## Sponsor Track Integrations
+
+**Arize Phoenix** is used as the observability layer for FlowGuard’s UX risk detection.  
+Every UX risk decision is traced with inputs (screenshots, code context), outputs (risk scores), and outcomes (pass/fail), allowing FlowGuard to track regressions, label false positives, and measurably improve detection quality over time.
+
+**DevSwarm** is used as a developer-facing agent layer.  
+When FlowGuard flags a UX risk, DevSwarm translates the signal into concise, actionable feedback directly on the pull request—explaining what changed, why it’s risky, and what class of fix is typically effective—without automatically modifying code.
+
+Together, Arize Phoenix and DevSwarm form a closed loop:  
+**detect → observe → explain → improve**, turning UX risk detection into a trustworthy, developer-friendly system.
+
