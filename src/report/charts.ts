@@ -17,6 +17,8 @@ export function generateSuccessRateTrendChart(data: TrendDataPoint[]): string {
     const padding = 40;
     const yScale = (height - 2 * padding) / 100;
     const x = padding + (width - 2 * padding) / 2;
+    // Get the single data point (guaranteed to exist since length === 1)
+    const point = data[0]!;
     // Ensure successRate is a valid number
     const validRate = isNaN(point.successRate) || !isFinite(point.successRate)
       ? 0

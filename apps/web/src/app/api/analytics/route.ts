@@ -1,38 +1,125 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getDatabase, getRepository } from '@/lib/mongodb';
+import { apiError, apiSuccess } from '@/lib/api-utils';
+import { AnalyticsQuerySchema, parseQueryParams } from '@/lib/validation';
+import type { TestResult, SuccessRateTrendPoint } from '@/types';
 
-export async function GET() {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // TODO: Replace with real MongoDB aggregation queries
-    const mockAnalytics = {
-      totalRuns: 145,
-      successRate: 87,
-      totalCost: 12.45,
-      avgConfidence: 89,
-      trends: [
-        { date: '2026-01-12', successRate: 85, runs: 20 },
-        { date: '2026-01-13', successRate: 87, runs: 22 },
-        { date: '2026-01-14', successRate: 88, runs: 25 },
-        { date: '2026-01-15', successRate: 86, runs: 18 },
-        { date: '2026-01-16', successRate: 89, runs: 24 },
-        { date: '2026-01-17', successRate: 87, runs: 21 },
-        { date: '2026-01-18', successRate: 90, runs: 15 },
-      ],
-    };
-
-    return NextResponse.json(mockAnalytics);
-  } catch (error) {
-    console.error('Error fetching analytics:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+interface AnalyticsResponse {
+  totalRuns: number;
+  successRate: number;
+  totalCost: number;
+  avgConfidence: number;
+  trends: Array<{
+    date: string;
+    successRate: number;
+    runs: number;
+  }>;
 }
 
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return apiError('Unauthorized', 401);
+    }
+
+    // Parse query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const validation = parseQueryParams(AnalyticsQuerySchema, searchParams);
+
+    if (!validation.success) {
+      return apiError(validation.error, 400);
+    }
+
+    const { days = 7, flowName } = validation.data;
+
+    const repository = await getRepository();
+    const db = await getDatabase();
+    const testResults = db.collection<TestResult>('test_results');
+
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get usage summary for the period
+    const usageSummary = await repository.getTenantUsageSummary(userId, startDate, endDate);
+
+    // Get success rate trend - either for a specific flow or all flows
+    let trends: SuccessRateTrendPoint[];
+
+    if (flowName) {
+      // Get trend for specific flow
+      trends = await repository.getSuccessRateTrendByTenant(userId, flowName, days);
+    } else {
+      // Get overall trend across all flows for this tenant
+      trends = await testResults.aggregate<SuccessRateTrendPoint>([
+        {
+          $match: {
+            'metadata.tenantId': userId,
+            timestamp: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+            totalRuns: { $sum: 1 },
+            successfulRuns: { $sum: { $cond: ['$measurements.passed', 1, 0] } },
+            avgConfidence: { $avg: '$measurements.avgConfidence' },
+            avgDuration: { $avg: '$measurements.duration' }
+          }
+        },
+        {
+          $project: {
+            date: '$_id',
+            successRate: { $multiply: [{ $divide: ['$successfulRuns', '$totalRuns'] }, 100] },
+            avgConfidence: 1,
+            avgDuration: 1,
+            totalRuns: 1
+          }
+        },
+        { $sort: { date: 1 } }
+      ]).toArray();
+    }
+
+    // Calculate overall metrics from the trend data
+    const totalRunsFromTrend = trends.reduce((sum, t) => sum + t.totalRuns, 0);
+    const weightedSuccessRate = trends.length > 0
+      ? trends.reduce((sum, t) => sum + (t.successRate * t.totalRuns), 0) / totalRunsFromTrend
+      : 0;
+    const avgConfidence = trends.length > 0
+      ? trends.reduce((sum, t) => sum + (t.avgConfidence * t.totalRuns), 0) / totalRunsFromTrend
+      : 0;
+
+    const analytics: AnalyticsResponse = {
+      totalRuns: usageSummary.totalRuns || totalRunsFromTrend,
+      successRate: Math.round(weightedSuccessRate),
+      totalCost: usageSummary.totalCost,
+      avgConfidence: Math.round(avgConfidence),
+      trends: trends.map(t => ({
+        date: t.date,
+        successRate: Math.round(t.successRate),
+        runs: t.totalRuns
+      }))
+    };
+
+    return apiSuccess(analytics);
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+
+    if (error instanceof Error && error.message.includes('MONGODB_URI')) {
+      return apiError('Database connection error', 503);
+    }
+
+    if (error instanceof Error && (
+      error.message.includes('Invalid') ||
+      error.message.includes('required')
+    )) {
+      return apiError(error.message, 400);
+    }
+
+    return apiError('Internal server error', 500);
+  }
+}

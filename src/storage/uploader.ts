@@ -46,7 +46,7 @@ export class UploadManager {
 
       // Extract step number from filename (e.g., "step-1-screenshot.png")
       const match = file.match(/step-(\d+)/);
-      const stepNumber = match && match[1] ? parseInt(match[1], 10) : 0;
+      const stepNumber = match?.[1] ? parseInt(match[1], 10) : 0;
 
       try {
         const url = await this.storage.uploadScreenshot(filePath, flowName, stepNumber);
@@ -96,7 +96,7 @@ export class UploadManager {
     try {
       const urlObj = new URL(url);
       key = urlObj.pathname.slice(1); // Remove leading slash
-      
+
       // Validate key is not empty
       if (!key || key.trim().length === 0) {
         throw new Error(`Invalid key extracted from URL: ${url}`);
@@ -108,4 +108,3 @@ export class UploadManager {
     return await this.storage.getSignedUrl(key, expiresIn);
   }
 }
-

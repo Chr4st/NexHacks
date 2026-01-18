@@ -1,41 +1,55 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getRepository } from '@/lib/mongodb';
+import { apiError, apiSuccess } from '@/lib/api-utils';
+import { ReportsQuerySchema, parseQueryParams } from '@/lib/validation';
+import { mapTestResultToListItem, type ReportListItem } from '@/lib/mappers';
 
-export async function GET() {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
-    // TODO: Replace with real MongoDB queries
-    const mockReports = [
-      {
-        id: '1',
-        flowName: 'Checkout Flow',
-        status: 'pass',
-        completedAt: new Date(Date.now() - 3600000).toISOString(),
-        duration: 3200,
-        steps: { total: 5, passed: 5, failed: 0 },
-      },
-      {
-        id: '2',
-        flowName: 'Login Flow',
-        status: 'fail',
-        completedAt: new Date(Date.now() - 7200000).toISOString(),
-        duration: 1800,
-        steps: { total: 3, passed: 2, failed: 1 },
-      },
-    ];
+    // Parse query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const validation = parseQueryParams(ReportsQuerySchema, searchParams);
 
-    return NextResponse.json({ reports: mockReports });
+    if (!validation.success) {
+      return apiError(validation.error, 400);
+    }
+
+    const { limit, flowName } = validation.data;
+
+    const repository = await getRepository();
+    const results = await repository.getRecentResultsByTenant(
+      userId,
+      flowName,
+      limit
+    );
+
+    // Map to API format - cast to include _id which comes from MongoDB
+    const reports: ReportListItem[] = results.map(result =>
+      mapTestResultToListItem(result as typeof result & { _id?: { toString(): string } })
+    );
+
+    return apiSuccess({ reports });
   } catch (error) {
     console.error('Error fetching reports:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+
+    if (error instanceof Error && error.message.includes('MONGODB_URI')) {
+      return apiError('Database connection error', 503);
+    }
+
+    if (error instanceof Error && (
+      error.message.includes('Invalid') ||
+      error.message.includes('required')
+    )) {
+      return apiError(error.message, 400);
+    }
+
+    return apiError('Internal server error', 500);
   }
 }
-

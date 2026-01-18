@@ -1,4 +1,4 @@
-import simpleGit from "simple-git";
+import simpleGit, { RemoteWithRefs } from "simple-git";
 
 export interface GitInfo {
   owner?: string;
@@ -10,7 +10,7 @@ export async function getGitInfo(): Promise<GitInfo> {
   try {
     const git = simpleGit();
     const remotes = await git.getRemotes(true);
-    const origin = remotes.find((r: { name: string }) => r.name === "origin");
+    const origin = remotes.find((r: RemoteWithRefs) => r.name === "origin");
     if (!origin) {
       return {};
     }

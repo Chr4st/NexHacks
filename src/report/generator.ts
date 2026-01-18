@@ -35,7 +35,7 @@ function convertToTrendData(history: FlowRunResult[]): TrendDataPoint[] {
         successRate = Math.max(0, Math.min(100, successRate));
       }
     }
-    
+
     return {
       date: new Date(run.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       successRate,
@@ -49,18 +49,19 @@ function convertToTrendData(history: FlowRunResult[]): TrendDataPoint[] {
 function extractSummaryData(run: FlowRunResult, historicalSuccessRate?: number): SummaryData {
   const passedSteps = run.steps.filter(s => s.success).length;
   const failedSteps = run.steps.length - passedSteps;
-  
-  // Calculate average confidence from step analyses
-  // Filter to only pass/fail analyses which have confidence property
-  const analysesWithConfidence = run.steps
-    .map(s => s.analysis)
-    .filter(a => a !== undefined && a.status !== 'error');
 
-  const avgConfidence = analysesWithConfidence.length > 0
-    ? analysesWithConfidence.reduce((sum, a) =>
-        // Cast to access confidence - we know it exists after filtering out 'error' type
-        sum + (a as { confidence: number }).confidence, 0
-      ) / analysesWithConfidence.length
+  // Calculate average confidence from step analyses
+  // Filter to only pass/fail results which have confidence property
+  const confidenceValues: number[] = [];
+  for (const step of run.steps) {
+    const a = step.analysis;
+    if (a && (a.status === 'pass' || a.status === 'fail')) {
+      confidenceValues.push(a.confidence);
+    }
+  }
+
+  const avgConfidence = confidenceValues.length > 0
+    ? confidenceValues.reduce((sum, c) => sum + c, 0) / confidenceValues.length
     : run.confidence;
 
   // Extract cost if available (from measurements or direct property)
@@ -97,7 +98,7 @@ export class ReportGenerator {
     const historicalSuccessRate = historicalData && historicalData.length > 0
       ? calculateSuccessRate(historicalData)
       : undefined;
-    
+
     const summaryData = extractSummaryData(flowRun, historicalSuccessRate);
     sections.push(generateSummary(summaryData));
 
@@ -156,4 +157,3 @@ export function generateModernReport(
     woodWideInsights: options?.woodWideInsights,
   });
 }
-
