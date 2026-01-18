@@ -34,9 +34,21 @@ export function generateSteps(steps: StepResult[]): string {
         <div class="step-reasoning">
           <strong>Analysis:</strong> ${escapeHtml(step.analysis.status === 'error' ? step.analysis.error : step.analysis.reasoning)}
           ${step.analysis.status === 'fail' && 'issues' in step.analysis && step.analysis.issues.length > 0
-            ? `<ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
-                ${step.analysis.issues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
-              </ul>`
+            ? `<div style="margin-top: 0.75rem;">
+                <strong style="font-size: 0.875rem; color: var(--color-danger);">Issues:</strong>
+                <ul style="margin-top: 0.5rem; padding-left: 1.5rem; font-size: 0.875rem;">
+                  ${step.analysis.issues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
+                </ul>
+              </div>`
+            : ''
+          }
+          ${step.analysis.status === 'fail' && 'suggestions' in step.analysis && step.analysis.suggestions.length > 0
+            ? `<div style="margin-top: 0.75rem;">
+                <strong style="font-size: 0.875rem; color: var(--color-primary);">Suggestions:</strong>
+                <ul style="margin-top: 0.5rem; padding-left: 1.5rem; font-size: 0.875rem;">
+                  ${step.analysis.suggestions.map(suggestion => `<li>${escapeHtml(suggestion)}</li>`).join('')}
+                </ul>
+              </div>`
             : ''
           }
         </div>
