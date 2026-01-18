@@ -1,326 +1,146 @@
 {
   "version": "1.0",
-  "created_at": "2026-01-18T02:56:52.417944",
-  "total_examples": 20,
+  "created_at": "2026-01-18T08:40:00.000000",
+  "total_examples": 10,
   "examples": [
     {
       "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "screenshot_path": "benchmarks/screenshots/accessibility_contrast.png",
+      "assertion": "The checkout button has sufficient color contrast (WCAG AA 4.5:1)",
       "ground_truth": {
         "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "expected_issues": ["Button contrast ratio is 2.1:1, below WCAG AA requirement"]
       },
       "metadata": {
         "category": "accessibility",
         "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:50.623305"
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_002",
+      "screenshot_path": "benchmarks/screenshots/accessibility_focus.png",
+      "assertion": "All interactive elements have visible focus indicators",
       "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "verdict": true,
+        "expected_issues": []
       },
       "metadata": {
         "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:50.688019"
+        "difficulty": "easy",
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_003",
+      "screenshot_path": "benchmarks/screenshots/layout_alignment.png",
+      "assertion": "All form fields are properly aligned in a vertical stack",
       "ground_truth": {
         "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "expected_issues": ["Email field is misaligned 5px to the right"]
       },
       "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:50.781448"
+        "category": "layout",
+        "difficulty": "hard",
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_004",
+      "screenshot_path": "benchmarks/screenshots/layout_spacing.png",
+      "assertion": "Consistent 16px spacing between all card elements",
       "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "verdict": true,
+        "expected_issues": []
       },
       "metadata": {
-        "category": "accessibility",
+        "category": "layout",
         "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:50.922968"
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_005",
+      "screenshot_path": "benchmarks/screenshots/responsive_mobile.png",
+      "assertion": "Mobile navigation menu is fully visible without horizontal scroll",
       "ground_truth": {
         "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "expected_issues": ["Navigation overflows viewport by 20px"]
       },
       "metadata": {
-        "category": "accessibility",
+        "category": "responsiveness",
         "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.143885"
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_006",
+      "screenshot_path": "benchmarks/screenshots/responsive_tablet.png",
+      "assertion": "Content adapts to tablet viewport (768px) without breaking",
       "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "verdict": true,
+        "expected_issues": []
       },
       "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.214092"
+        "category": "responsiveness",
+        "difficulty": "easy",
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_007",
+      "screenshot_path": "benchmarks/screenshots/ux_dark_pattern.png",
+      "assertion": "No deceptive dark patterns in the unsubscribe flow",
       "ground_truth": {
         "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "expected_issues": ["Cancel button is styled to look disabled but is clickable"]
       },
       "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.294621"
+        "category": "ux-dark-patterns",
+        "difficulty": "hard",
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_008",
+      "screenshot_path": "benchmarks/screenshots/ux_cta_clarity.png",
+      "assertion": "Primary call-to-action is clearly distinguishable from secondary actions",
       "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "verdict": true,
+        "expected_issues": []
       },
       "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.366311"
+        "category": "ux-dark-patterns",
+        "difficulty": "easy",
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_009",
+      "screenshot_path": "benchmarks/screenshots/security_input.png",
+      "assertion": "Password field has type='password' attribute (not visible text)",
       "ground_truth": {
         "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "expected_issues": ["Password is displayed as plain text instead of masked"]
       },
       "metadata": {
-        "category": "accessibility",
+        "category": "security",
         "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.444889"
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     },
     {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
+      "id": "example_010",
+      "screenshot_path": "benchmarks/screenshots/security_https.png",
+      "assertion": "Login form is served over HTTPS connection",
       "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
+        "verdict": true,
+        "expected_issues": []
       },
       "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.509916"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.571692"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.632252"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.698543"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.765050"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.836332"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.893108"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:51.965652"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:52.155321"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:52.353811"
-      }
-    },
-    {
-      "id": "example_001",
-      "screenshot_path": "benchmarks/screenshots/accessibility_1.png",
-      "assertion": "The checkout button has sufficient color contrast (WCAG AA)",
-      "ground_truth": {
-        "verdict": false,
-        "expected_issues": [
-          "Button contrast ratio is 2.1:1, below WCAG AA requirement of 4.5:1"
-        ]
-      },
-      "metadata": {
-        "category": "accessibility",
-        "difficulty": "medium",
-        "created_at": "2026-01-18T02:56:52.417787"
+        "category": "security",
+        "difficulty": "easy",
+        "created_at": "2026-01-18T08:40:00.000000"
       }
     }
   ]

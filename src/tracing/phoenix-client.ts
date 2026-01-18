@@ -1,70 +1,65 @@
-import axios, { type AxiosInstance } from 'axios';
-import { SpanStatusCode } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import crypto from 'crypto';
 import type { PhoenixTrace } from './types.js';
 
 /**
- * Phoenix Client for sending traces to Arize Phoenix
+ * Phoenix Client for sending traces to Arize Phoenix using OpenTelemetry
  */
 export class PhoenixClient {
-  private client: AxiosInstance;
+  private provider: NodeTracerProvider;
+  private tracer: any;
 
   constructor(endpoint: string) {
-    this.client = axios.create({
-      baseURL: endpoint,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      // Don't throw on 4xx/5xx to allow graceful degradation
-      validateStatus: () => true
+    // Create OTLP protobuf exporter pointing to Phoenix
+    const exporter = new OTLPTraceExporter({
+      url: `${endpoint}/v1/traces`
     });
+
+    // Create tracer provider
+    this.provider = new NodeTracerProvider();
+
+    // Add exporter to provider
+    this.provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+    this.provider.register();
+
+    this.tracer = trace.getTracer('flowguard-phoenix', '1.0.0');
   }
 
   /**
-   * Log a trace to Phoenix
+   * Log a trace to Phoenix using OpenTelemetry
    */
-  async logTrace(trace: PhoenixTrace): Promise<string> {
+  async logTrace(phoenixTrace: PhoenixTrace): Promise<string> {
     try {
-      const payload = {
-        resourceSpans: [{
-          resource: {
-            attributes: [
-              { key: 'service.name', value: { stringValue: 'flowguard' } },
-              { key: 'project.name', value: { stringValue: trace.project } }
-            ]
-          },
-          scopeSpans: [{
-            scope: { name: 'flowguard-tracer', version: '1.0.0' },
-            spans: [{
-              traceId: this.hexToBase64(trace.traceId),
-              spanId: this.hexToBase64(trace.spanId),
-              name: trace.name,
-              kind: this.mapSpanKind(trace.kind),
-              startTimeUnixNano: trace.startTime.getTime() * 1_000_000,
-              endTimeUnixNano: trace.endTime.getTime() * 1_000_000,
-              attributes: this.convertAttributes(trace.attributes),
-              events: trace.events.map(e => ({
-                name: e.name,
-                timeUnixNano: e.timestamp.getTime() * 1_000_000,
-                attributes: this.convertAttributes(e.attributes)
-              })),
-              status: { code: SpanStatusCode.OK }
-            }]
-          }]
-        }]
-      };
+      const span = this.tracer.startSpan(phoenixTrace.name, {
+        startTime: phoenixTrace.startTime
+      });
 
-      const response = await this.client.post('/v1/traces', payload);
+      // Set attributes
+      Object.entries(phoenixTrace.attributes).forEach(([key, value]) => {
+        span.setAttribute(key, value);
+      });
 
-      if (response.status >= 400) {
-        console.warn(`Phoenix trace failed with status ${response.status}:`, response.data);
-      }
+      // Set project name
+      span.setAttribute('project.name', phoenixTrace.project);
 
-      return trace.traceId;
+      // Add events
+      phoenixTrace.events.forEach(event => {
+        span.addEvent(event.name, event.attributes, event.timestamp);
+      });
+
+      // End span at the specified end time
+      span.end(phoenixTrace.endTime);
+
+      // Force flush to ensure trace is sent
+      await this.provider.forceFlush();
+
+      return phoenixTrace.traceId;
     } catch (error) {
       // Graceful degradation - log error but don't throw
       console.warn('Failed to send trace to Phoenix:', error);
-      return trace.traceId;
+      return phoenixTrace.traceId;
     }
   }
 
@@ -98,44 +93,9 @@ export class PhoenixClient {
   }
 
   /**
-   * Convert UUID hex to base64 for Phoenix
+   * Shutdown the provider
    */
-  private hexToBase64(hex: string): string {
-    const cleaned = hex.replace(/-/g, '');
-    const buffer = Buffer.from(cleaned, 'hex');
-    return buffer.toString('base64');
-  }
-
-  /**
-   * Map span kind string to OTLP number
-   */
-  private mapSpanKind(kind: string): number {
-    const mapping: Record<string, number> = {
-      'LLM': 1,
-      'CHAIN': 2,
-      'TOOL': 3,
-      'RETRIEVER': 4
-    };
-    return mapping[kind] || 0;
-  }
-
-  /**
-   * Convert attributes to OTLP format
-   */
-  private convertAttributes(attrs: Record<string, any>): Array<{ key: string; value: any }> {
-    return Object.entries(attrs).map(([key, value]) => ({
-      key,
-      value: this.convertValue(value)
-    }));
-  }
-
-  /**
-   * Convert value to OTLP format
-   */
-  private convertValue(value: any): any {
-    if (typeof value === 'string') return { stringValue: value };
-    if (typeof value === 'number') return { doubleValue: value };
-    if (typeof value === 'boolean') return { boolValue: value };
-    return { stringValue: JSON.stringify(value) };
+  async shutdown(): Promise<void> {
+    await this.provider.shutdown();
   }
 }

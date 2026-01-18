@@ -1,5 +1,15 @@
 import { Db, Collection } from 'mongodb';
-import { TestResult, VisionCache, FlowDefinition, UsageEvent, Experiment, SuccessRateTrendPoint, FlowCostSummary } from './schemas.js';
+import {
+  TestResult,
+  VisionCache,
+  FlowDefinition,
+  UsageEvent,
+  Experiment,
+  SuccessRateTrendPoint,
+  FlowCostSummary,
+  FlowExecutionDataDocument,
+  FlowExecutionData
+} from './schemas.js';
 import { validateString, validateNumber, validateSearchQuery, escapeRegex } from './validators.js';
 
 export class FlowGuardRepository {
@@ -8,6 +18,7 @@ export class FlowGuardRepository {
   private flowDefinitions: Collection<FlowDefinition>;
   private usageEvents: Collection<UsageEvent>;
   private experiments: Collection<Experiment>;
+  private flowExecutions: Collection<FlowExecutionDataDocument>;
 
   constructor(db: Db) {
     this.testResults = db.collection('test_results');
@@ -15,6 +26,7 @@ export class FlowGuardRepository {
     this.flowDefinitions = db.collection('flow_definitions');
     this.usageEvents = db.collection('usage_events');
     this.experiments = db.collection('experiments');
+    this.flowExecutions = db.collection('flow_executions');
   }
 
   // ==================== Test Results ====================
@@ -260,5 +272,51 @@ export class FlowGuardRepository {
   async deleteAllABExperiments(): Promise<number> {
     const result = await this.experiments.deleteMany({ experimentId: { $exists: true } });
     return result.deletedCount;
+  }
+
+  // ==================== Flow Execution Data (Phase 1: Agent-Driven Testing) ====================
+
+  async saveFlowExecutionData(data: FlowExecutionData): Promise<string> {
+    const doc: Omit<FlowExecutionDataDocument, '_id'> = {
+      ...data,
+      createdAt: new Date()
+    };
+
+    const result = await this.flowExecutions.insertOne(doc as FlowExecutionDataDocument);
+    return result.insertedId.toString();
+  }
+
+  async getFlowExecutionData(flowId: string): Promise<FlowExecutionData | null> {
+    const validFlowId = validateString(flowId, 'flowId');
+    return await this.flowExecutions.findOne({ flowId: validFlowId }) as FlowExecutionData | null;
+  }
+
+  async queryFlowExecutions(filters: {
+    flowName?: string;
+    verdict?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<FlowExecutionData[]> {
+    const query: any = {};
+
+    if (filters.flowName) {
+      query.flowName = validateString(filters.flowName, 'flowName');
+    }
+
+    if (filters.verdict) {
+      query.verdict = validateString(filters.verdict, 'verdict');
+    }
+
+    if (filters.startDate || filters.endDate) {
+      query.startTime = {};
+      if (filters.startDate) {
+        query.startTime.$gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        query.startTime.$lte = filters.endDate;
+      }
+    }
+
+    return await this.flowExecutions.find(query).toArray() as FlowExecutionData[];
   }
 }

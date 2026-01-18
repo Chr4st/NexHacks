@@ -182,3 +182,35 @@ export interface PromptMetrics {
   avgLatency: number;
   phoenixTraceIds: string[];
 }
+
+// ==================== Flow Execution Data (Phase 1: Agent-Driven Testing) ====================
+// Collection: flow_executions
+
+import type {
+  FlowExecutionData,
+  StepExecutionData,
+  DOMSnapshot,
+  NetworkRequest,
+  ConsoleLog,
+  PerformanceMetrics
+} from '../tracing/types.js';
+
+export interface FlowExecutionDataDocument {
+  _id: ObjectId;
+  flowId: string;
+  flowName: string;
+  intent: string;
+  url: string;
+  startTime: Date;
+  endTime: Date;
+  verdict: 'pass' | 'fail' | 'error';
+  steps: StepExecutionData[];
+  domSnapshots: DOMSnapshot[];
+  networkRequests: NetworkRequest[];
+  consoleLogs: ConsoleLog[];
+  performanceMetrics: PerformanceMetrics;
+  phoenixTraceId: string;
+  createdAt: Date;
+}
+
+export type { FlowExecutionData, StepExecutionData, DOMSnapshot, NetworkRequest, ConsoleLog, PerformanceMetrics };

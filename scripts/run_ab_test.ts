@@ -69,7 +69,7 @@ async function main() {
         variant: options.variant === 'v2.0' ? IMPROVED_PROMPT_V2 : DEFAULT_PROMPT_V1
       },
       dataset: sample,
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-20241022' as any,
       traceProject: 'flowguard-ab-tests'
     });
 

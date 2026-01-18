@@ -145,9 +145,10 @@ export class PromptOptimizer {
         // Read screenshot (use placeholder for now - real implementation will read file)
         const screenshotBase64 = await this.readScreenshot(example.screenshot_path);
 
-        // Call vision model
+        // Call vision model (use latest model name)
+        const actualModel = model.includes('sonnet') ? 'claude-sonnet-4-5-20250929' : model;
         const response = await this.anthropic.messages.create({
-          model,
+          model: actualModel,
           max_tokens: 1000,
           system: prompt.systemPrompt,
           messages: [{
