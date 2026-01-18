@@ -34,5 +34,7 @@ export {
   flowGuardResultToTestResult,
   extractPRContext,
   createPersistentTestRunner,
-  getFlowHistory
+  getFlowHistory,
+  flowRunResultToFlowGuardResult,
+  createFlowGuardTestRunner
 } from './db-integration.js';

@@ -4,10 +4,13 @@ import {
   flowGuardResultToTestResult,
   extractPRContext,
   createPersistentTestRunner,
-  getFlowHistory
+  getFlowHistory,
+  flowRunResultToFlowGuardResult,
+  createFlowGuardTestRunner
 } from '../db-integration.js';
 import type { FlowGuardResult, PullRequestPayload } from '../types.js';
 import type { TestResult } from '../../db/schemas.js';
+import type { FlowRunResult } from '../../types.js';
 
 describe('Database Integration', () => {
   describe('testResultToFlowGuardResult', () => {
@@ -246,6 +249,108 @@ describe('Database Integration', () => {
       expect(history).toHaveLength(1);
       expect(history[0].flowName).toBe('test-flow');
       expect(history[0].passed).toBe(true);
+    });
+  });
+
+  describe('flowRunResultToFlowGuardResult', () => {
+    it('should convert FlowRunResult to FlowGuardResult', () => {
+      const runResult: FlowRunResult = {
+        flowName: 'checkout-flow',
+        intent: 'User completes checkout',
+        url: 'https://example.com/checkout',
+        viewport: { width: 1920, height: 1080 },
+        verdict: 'pass',
+        confidence: 95,
+        steps: [
+          { stepIndex: 0, action: 'navigate', success: true, durationMs: 1000 },
+          { stepIndex: 1, action: 'click', success: true, durationMs: 500 },
+          { stepIndex: 2, action: 'screenshot', success: true, durationMs: 200, screenshotPath: '/tmp/shot.png' }
+        ],
+        startedAt: '2026-01-18T00:00:00Z',
+        completedAt: '2026-01-18T00:00:02Z',
+        durationMs: 1700
+      };
+
+      const result = flowRunResultToFlowGuardResult(runResult);
+
+      expect(result.flowName).toBe('checkout-flow');
+      expect(result.passed).toBe(true);
+      expect(result.duration).toBe(1700);
+      expect(result.steps).toHaveLength(3);
+      expect(result.steps[2].screenshot).toBe('/tmp/shot.png');
+    });
+
+    it('should handle failed verdict', () => {
+      const runResult: FlowRunResult = {
+        flowName: 'login-flow',
+        intent: 'User logs in',
+        url: 'https://example.com/login',
+        viewport: { width: 1920, height: 1080 },
+        verdict: 'fail',
+        confidence: 50,
+        steps: [
+          { stepIndex: 0, action: 'click', success: false, durationMs: 100, error: 'Element not found' }
+        ],
+        startedAt: '2026-01-18T00:00:00Z',
+        completedAt: '2026-01-18T00:00:01Z',
+        durationMs: 100
+      };
+
+      const result = flowRunResultToFlowGuardResult(runResult);
+
+      expect(result.passed).toBe(false);
+      expect(result.steps[0].passed).toBe(false);
+      expect(result.steps[0].error).toBe('Element not found');
+    });
+
+    it('should handle error verdict', () => {
+      const runResult: FlowRunResult = {
+        flowName: 'broken-flow',
+        intent: 'This will fail',
+        url: 'https://example.com',
+        viewport: { width: 1920, height: 1080 },
+        verdict: 'error',
+        confidence: 0,
+        steps: [],
+        startedAt: '2026-01-18T00:00:00Z',
+        completedAt: '2026-01-18T00:00:00Z',
+        durationMs: 0
+      };
+
+      const result = flowRunResultToFlowGuardResult(runResult);
+
+      expect(result.passed).toBe(false);
+    });
+  });
+
+  describe('createFlowGuardTestRunner', () => {
+    it('should wrap executeFlows and convert results', async () => {
+      const mockRunResults: FlowRunResult[] = [
+        {
+          flowName: 'test-flow',
+          intent: 'Test',
+          url: 'https://example.com',
+          viewport: { width: 1920, height: 1080 },
+          verdict: 'pass',
+          confidence: 90,
+          steps: [{ stepIndex: 0, action: 'navigate', success: true, durationMs: 500 }],
+          startedAt: '2026-01-18T00:00:00Z',
+          completedAt: '2026-01-18T00:00:01Z',
+          durationMs: 500
+        }
+      ];
+
+      const mockExecuteFlows = vi.fn().mockResolvedValue(mockRunResults);
+      const flows = [{ name: 'test-flow' }];
+      const outputDir = '/tmp/output';
+
+      const runner = createFlowGuardTestRunner(mockExecuteFlows, flows, outputDir);
+      const results = await runner();
+
+      expect(mockExecuteFlows).toHaveBeenCalledWith(flows, outputDir);
+      expect(results).toHaveLength(1);
+      expect(results[0].flowName).toBe('test-flow');
+      expect(results[0].passed).toBe(true);
     });
   });
 });

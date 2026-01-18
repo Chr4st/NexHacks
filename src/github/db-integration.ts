@@ -2,13 +2,14 @@
  * Database Integration for GitHub App Module
  * 
  * Provides converters and utilities to integrate the GitHub App
- * with the MongoDB database (Agent A1's work).
+ * with the MongoDB database (Agent A1's work) and the main runner.
  */
 
 import type { FlowGuardResult } from './types.js';
 import type { TestResult, StepResult } from '../db/schemas.js';
 import type { FlowGuardRepository } from '../db/repository.js';
 import type { PullRequestPayload } from './types.js';
+import type { FlowRunResult } from '../types.js';
 
 /**
  * Convert a MongoDB TestResult to a FlowGuardResult for PR comments.
@@ -133,4 +134,38 @@ export async function getFlowHistory(
 ): Promise<FlowGuardResult[]> {
   const testResults = await repository.getRecentResults(flowName, limit);
   return testResults.map(testResultToFlowGuardResult);
+}
+
+/**
+ * Convert a FlowRunResult (from main runner) to FlowGuardResult (for GitHub comments).
+ * This bridges the main test runner with the GitHub module.
+ */
+export function flowRunResultToFlowGuardResult(runResult: FlowRunResult): FlowGuardResult {
+  return {
+    flowName: runResult.flowName,
+    passed: runResult.verdict === 'pass',
+    duration: runResult.durationMs,
+    steps: runResult.steps.map(step => ({
+      name: step.action + (step.screenshotPath ? ` (screenshot)` : ''),
+      passed: step.success,
+      screenshot: step.screenshotPath,
+      error: step.error
+    })),
+    reportUrl: undefined
+  };
+}
+
+/**
+ * Create a test runner that wraps executeFlows and converts results.
+ * This is the main integration point between the runner and GitHub module.
+ */
+export function createFlowGuardTestRunner(
+  executeFlowsFn: (flows: any[], outputDir: string) => Promise<FlowRunResult[]>,
+  flows: any[],
+  outputDir: string
+): () => Promise<FlowGuardResult[]> {
+  return async () => {
+    const runResults = await executeFlowsFn(flows, outputDir);
+    return runResults.map(flowRunResultToFlowGuardResult);
+  };
 }
