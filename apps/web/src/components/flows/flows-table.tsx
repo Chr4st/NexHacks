@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Clock, Play, MoreVertical } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CheckCircle2, XCircle, Clock, Play, MoreVertical, GitBranch } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
@@ -45,6 +46,22 @@ export function FlowsTable() {
               <div key={i} className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded" />
             ))}
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (flows.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <EmptyState
+            icon={<GitBranch className="h-10 w-10" />}
+            title="No flows yet"
+            description="Create your first flow to start testing your user journeys. Flows help you validate that users can accomplish their goals."
+            actionLabel="Create Your First Flow"
+            actionHref="/flows/new"
+          />
         </CardContent>
       </Card>
     );
@@ -95,11 +112,6 @@ export function FlowsTable() {
               </div>
             </div>
           ))}
-          {flows.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No flows yet. Create your first flow to get started.
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
