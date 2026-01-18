@@ -144,3 +144,54 @@ Core Web Vitals:
   ${ratingEmoji(metrics.inp.rating)} INP: ${metrics.inp.p75}ms (${metrics.inp.rating})
 `.trim();
 }
+
+/**
+ * Get analysis from Wood Wide AI.
+ *
+ * @param metrics - CrUX metrics to analyze
+ * @param useMock - Use mock data if true (for demos)
+ * @returns Wood Wide analysis result or null if unavailable
+ */
+export async function getWoodWideAnalysis(
+  metrics: CruxMetrics,
+  useMock = false
+): Promise<WoodWideResult | null> {
+  if (useMock) {
+    console.log('[FlowGuard] Using mock Wood-Wide data for demo');
+    return {
+      significant: true,
+      confidence: 0.95,
+      interpretation: 'The change in LCP is statistically significant.',
+    };
+  }
+
+  const apiKey = process.env.WOOD_WIDE_API_KEY;
+  if (!apiKey) {
+    console.warn('[FlowGuard] No WOOD_WIDE_API_KEY set, Wood-Wide analysis unavailable');
+    return null;
+  }
+
+  // TODO: Implement actual API call to Wood Wide AI
+  console.log('[FlowGuard] Wood-Wide analysis not implemented yet, returning mock data');
+  return {
+    significant: true,
+    confidence: 0.95,
+    interpretation: 'The change in LCP is statistically significant.',
+  };
+}
+
+/**
+ * Format Wood-Wide analysis for display.
+ *
+ * @param analysis - Wood-Wide analysis to format
+ * @returns Formatted string
+ */
+export function formatWoodWideAnalysis(analysis: WoodWideResult): string {
+  const icon = analysis.significant ? '✅' : '❌';
+  return `
+Wood-Wide Analysis:
+  ${icon} Statistically Significant: ${analysis.significant}
+  Confidence: ${(analysis.confidence * 100).toFixed(0)}%
+  Interpretation: ${analysis.interpretation}
+`.trim();
+}

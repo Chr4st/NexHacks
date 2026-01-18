@@ -1,5 +1,5 @@
 import { Db, Collection } from 'mongodb';
-import { TestResult, VisionCache, FlowDefinition, UsageEvent, Experiment, SuccessRateTrendPoint, FlowCostSummary } from './schemas.js';
+import { TestResult, VisionCache, FlowDefinition, UsageEvent, Experiment, SuccessRateTrendPoint, FlowCostSummary, UXRisk } from './schemas.js';
 import { validateString, validateNumber, validateSearchQuery, escapeRegex } from './validators.js';
 
 export class FlowGuardRepository {
@@ -8,6 +8,7 @@ export class FlowGuardRepository {
   private flowDefinitions: Collection<FlowDefinition>;
   private usageEvents: Collection<UsageEvent>;
   private experiments: Collection<Experiment>;
+  private uxRisks: Collection<UXRisk>;
 
   constructor(db: Db) {
     this.testResults = db.collection('test_results');
@@ -15,6 +16,7 @@ export class FlowGuardRepository {
     this.flowDefinitions = db.collection('flow_definitions');
     this.usageEvents = db.collection('usage_events');
     this.experiments = db.collection('experiments');
+    this.uxRisks = db.collection('ux_risks');
   }
 
   // ==================== Test Results ====================
@@ -217,5 +219,14 @@ export class FlowGuardRepository {
       .sort({ startedAt: -1 })
       .limit(limit)
       .toArray();
+  }
+
+  // ==================== UX Risks ====================
+
+  async saveUXRisk(risk: Omit<UXRisk, '_id' | 'timestamp'>): Promise<void> {
+    await this.uxRisks.insertOne({
+      ...risk,
+      timestamp: new Date(),
+    } as UXRisk);
   }
 }

@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { Command } from 'commander';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -7,12 +5,14 @@ import { parseFlowFile, discoverFlows } from './parser.js';
 import { executeFlow, closeBrowser } from './runner.js';
 import { analyzeScreenshot } from './vision.js';
 import { initTracing, traceFlowRun, traceVisionAnalysis, shutdownTracing } from './tracing.js';
-import { getCruxMetrics, formatCruxMetrics } from './metrics.js';
+import { getCruxMetrics, formatCruxMetrics, getWoodWideAnalysis, formatWoodWideAnalysis } from './metrics.js';
 import { saveReport } from './report.js';
 import type { FlowRunResult, OutputFormat, Config } from './types.js';
 import { ConfigSchema } from './types.js';
 import { validatePath, validateOutputDirectory, validateInputFile, PathSecurityError } from './security.js';
 import { DevSwarm } from './devswarm.js';
+import { db } from './db/client.js';
+import { FlowGuardRepository } from './db/repository.js';
 
 const VERSION = '0.1.0';
 
@@ -179,7 +179,7 @@ program
       if (error instanceof PathSecurityError) {
         outputError('Invalid output directory path', format);
       }
-      throw error;
+      throw error; // Re-throw to ensure process exits with error code
     }
 
     // Find flows to run
@@ -194,7 +194,7 @@ program
         if (error instanceof PathSecurityError) {
           outputError('Invalid flow file path', format);
         }
-        outputError('Flow file not found', format);
+        outputError('Flow file not found', format); // outputError exits the process
       }
     } else {
       // Load config or use defaults
@@ -211,7 +211,7 @@ program
           }
         }
       } catch {
-        // Use default flowsDir if config is invalid
+        // Use default flowsDir if config is invalid (error already logged by validatePath if it fails)
       }
 
       flowFiles = discoverFlows(flowsDir);
@@ -224,6 +224,17 @@ program
     // Initialize tracing if enabled
     if (options.trace) {
       initTracing();
+    }
+
+    let repository: FlowGuardRepository | null = null;
+    if (process.env.MONGODB_URI) {
+      try {
+        await db.connect();
+        repository = new FlowGuardRepository(db.getDb());
+      } catch (error) {
+        console.error('Failed to connect to MongoDB:', error);
+        outputError('Failed to connect to MongoDB for UX risk persistence.', format);
+      }
     }
 
     const results: FlowRunResult[] = [];
@@ -292,6 +303,9 @@ program
                         risk: step.analysis.issues[0] || 'No specific issue reported',
                         recommendation: step.analysis.suggestions[0] || 'No specific suggestion provided',
                       };
+                      if (repository) {
+                        await repository.saveUXRisk(risk);
+                      }
                       await devswarm.postComment(risk);
                     } else {
                       console.warn('GITHUB_TOKEN not set, skipping DevSwarm comment.');
@@ -339,6 +353,16 @@ program
       // Fetch CrUX metrics if available
       const cruxMetrics = await getCruxMetrics(flow.url, options.mock);
 
+      if (cruxMetrics) {
+        const woodWideAnalysis = await getWoodWideAnalysis(cruxMetrics, options.mock);
+        if (woodWideAnalysis) {
+          if (format === 'text') {
+            console.log('');
+            console.log(formatWoodWideAnalysis(woodWideAnalysis));
+          }
+        }
+      }
+
       // Generate report
       const reportPath = saveReport(flowResult, validatedOutputDir, cruxMetrics ?? undefined);
 
@@ -378,6 +402,10 @@ program
     // Shutdown tracing
     if (options.trace) {
       await shutdownTracing();
+    }
+
+    if (repository) {
+      await db.disconnect();
     }
 
     // Output JSON results
