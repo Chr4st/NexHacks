@@ -1,6 +1,11 @@
 import { SpacesStorage } from './spaces.js';
 import type { CleanupReport, CleanupPreview } from './types.js';
 
+// Type for storage with metadata method
+type StorageWithMetadata = SpacesStorage & {
+  listObjectsWithMetadata: (prefix: string) => Promise<Array<{ key: string; lastModified?: Date; size?: number }>>;
+};
+
 export class StorageCleaner {
   constructor(private storage: SpacesStorage) {}
 
@@ -49,13 +54,27 @@ export class StorageCleaner {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
-    const screenshots = await this.storage.listObjects('screenshots/');
-    const reports = await this.storage.listObjects('reports/');
+    // Use listObjectsWithMetadata to get accurate counts
+    const storageWithMetadata = this.storage as StorageWithMetadata;
+
+    const screenshotObjects = await storageWithMetadata.listObjectsWithMetadata('screenshots/');
+    const reportObjects = await storageWithMetadata.listObjectsWithMetadata('reports/');
+
+    // Filter by date
+    const screenshotsToDelete = screenshotObjects.filter(
+      (obj) => obj.lastModified && obj.lastModified < cutoffDate
+    ).length;
+
+    const reportsCutoffDate = new Date();
+    reportsCutoffDate.setDate(reportsCutoffDate.getDate() - retentionDays * 2);
+    const reportsToDelete = reportObjects.filter(
+      (obj) => obj.lastModified && obj.lastModified < reportsCutoffDate
+    ).length;
 
     return {
-      screenshotsToDelete: screenshots.length,
-      reportsToDelete: reports.length,
-      totalToDelete: screenshots.length + reports.length,
+      screenshotsToDelete,
+      reportsToDelete,
+      totalToDelete: screenshotsToDelete + reportsToDelete,
       cutoffDate,
     };
   }

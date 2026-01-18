@@ -155,6 +155,26 @@ export class SpacesStorage {
   }
 
   /**
+   * List objects with metadata (for preview operations).
+   */
+  async listObjectsWithMetadata(prefix: string): Promise<Array<{ key: string; lastModified?: Date; size?: number }>> {
+    const response = await this.client.send(
+      new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: prefix,
+      })
+    );
+
+    return (
+      response.Contents?.map((obj) => ({
+        key: obj.Key!,
+        lastModified: obj.LastModified,
+        size: obj.Size,
+      })) || []
+    );
+  }
+
+  /**
    * Delete objects older than specified days.
    */
   async deleteOlderThan(prefix: string, days: number): Promise<number> {
