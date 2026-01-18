@@ -11,7 +11,41 @@ export async function GET() {
     }
 
     const repository = await getRepository();
-    const flows = await repository.getDashboardFlows(userId);
+    const dashboardFlows = await repository.getDashboardFlows(userId);
+
+    // Transform to the format expected by the frontend
+    // Also fetch success rates for each flow
+    const flows = await Promise.all(
+      dashboardFlows.map(async ({ flow, lastRun, runCount }) => {
+        // Get success rate trend for this specific flow
+        let successRate = 0;
+        if (runCount > 0) {
+          try {
+            const trends = await repository.getSuccessRateTrendByTenant(userId, flow.name, 30);
+            if (trends.length > 0) {
+              const totalRuns = trends.reduce((sum, t) => sum + t.totalRuns, 0);
+              const successfulRuns = trends.reduce((sum, t) => sum + Math.round(t.totalRuns * t.successRate / 100), 0);
+              successRate = totalRuns > 0 ? Math.round(successfulRuns / totalRuns * 100) : 0;
+            }
+          } catch {
+            // If we can't get trends, estimate from last run
+            successRate = lastRun?.passed ? 100 : 0;
+          }
+        }
+
+        const status = lastRun ? (lastRun.passed ? 'passing' : 'failing') : 'passing';
+
+        return {
+          id: (flow as any)._id?.toString() || flow.name,
+          name: flow.name,
+          intent: flow.intent,
+          status,
+          lastRun: lastRun?.timestamp?.toISOString() || flow.updatedAt?.toISOString() || new Date().toISOString(),
+          successRate,
+          totalRuns: runCount,
+        };
+      })
+    );
 
     return NextResponse.json({ flows });
   } catch (error) {
@@ -55,7 +89,8 @@ export async function POST(request: Request) {
         assert: step.assert,
         timeout: step.timeout,
       })),
-      tenantId: userId,
+      tags: [],
+      critical: false,
     });
 
     return NextResponse.json({ id: flowId, success: true });

@@ -278,27 +278,31 @@ export class FlowGuardRepository {
 
   /**
    * Get success rate trend for a tenant's flow.
+   * If flowName is empty or not provided, returns trends for all flows.
    */
   async getSuccessRateTrendByTenant(
     tenantId: string,
-    flowName: string,
+    flowName?: string,
     daysBack: number = 7
   ): Promise<SuccessRateTrendPoint[]> {
     const validTenantId = validateTenantId(tenantId);
-    const validFlowName = validateString(flowName, 'flowName');
     const validDaysBack = validateNumber(daysBack, 'daysBack', 1, 365);
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - validDaysBack);
 
+    // Build match filter - only add flowName if provided
+    const matchFilter: Record<string, unknown> = {
+      'metadata.tenantId': validTenantId,
+      timestamp: { $gte: startDate }
+    };
+
+    if (flowName && flowName.trim()) {
+      matchFilter['metadata.flowName'] = validateString(flowName, 'flowName');
+    }
+
     return await this.testResults.aggregate<SuccessRateTrendPoint>([
-      {
-        $match: {
-          'metadata.tenantId': validTenantId,
-          'metadata.flowName': validFlowName,
-          timestamp: { $gte: startDate }
-        }
-      },
+      { $match: matchFilter },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
@@ -424,7 +428,7 @@ export class FlowGuardRepository {
     endDate: Date
   ): Promise<FlowCostSummary[]> {
     const validTenantId = validateTenantId(tenantId);
-    
+
     return await this.usageEvents.aggregate<FlowCostSummary>([
       {
         $match: {
@@ -442,6 +446,45 @@ export class FlowGuardRepository {
         }
       },
       { $sort: { totalCost: -1 } }
+    ]).toArray();
+  }
+
+  /**
+   * Get daily cost trends for a tenant.
+   */
+  async getCostTrendByTenant(
+    tenantId: string,
+    daysBack: number = 7
+  ): Promise<Array<{ date: string; cost: number; runs: number }>> {
+    const validTenantId = validateTenantId(tenantId);
+    const validDaysBack = validateNumber(daysBack, 'daysBack', 1, 365);
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - validDaysBack);
+
+    return await this.usageEvents.aggregate<{ date: string; cost: number; runs: number }>([
+      {
+        $match: {
+          tenantId: validTenantId,
+          timestamp: { $gte: startDate },
+          cost: { $exists: true }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+          cost: { $sum: { $ifNull: ['$cost', 0] } },
+          runs: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          date: '$_id',
+          cost: { $round: ['$cost', 2] },
+          runs: 1
+        }
+      },
+      { $sort: { date: 1 } }
     ]).toArray();
   }
 

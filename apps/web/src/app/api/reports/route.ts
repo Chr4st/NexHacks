@@ -11,18 +11,19 @@ export async function GET() {
     }
 
     const repository = await getRepository();
-    const results = await repository.getRecentResultsByTenant(userId, 20);
+    // Pass flowName as undefined to get all flows, and 20 as the limit
+    const results = await repository.getRecentResultsByTenant(userId, undefined, 20);
 
     const reports = results.map(result => ({
-      id: result._id?.toString(),
-      flowName: result.flowName,
-      status: result.success ? 'pass' : 'fail',
+      id: (result as any)._id?.toString() || crypto.randomUUID(),
+      flowName: result.metadata.flowName,
+      status: result.measurements.passed ? 'pass' : 'fail',
       completedAt: result.timestamp.toISOString(),
-      duration: result.duration,
+      duration: result.measurements.duration,
       steps: {
-        total: result.stepResults?.length || 0,
-        passed: result.stepResults?.filter(s => s.success).length || 0,
-        failed: result.stepResults?.filter(s => !s.success).length || 0,
+        total: result.measurements.totalSteps || 0,
+        passed: (result.measurements.totalSteps || 0) - (result.measurements.failedSteps || 0),
+        failed: result.measurements.failedSteps || 0,
       },
     }));
 
@@ -35,4 +36,3 @@ export async function GET() {
     );
   }
 }
-
