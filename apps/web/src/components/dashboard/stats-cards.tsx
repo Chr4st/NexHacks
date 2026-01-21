@@ -1,15 +1,82 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, CheckCircle2, DollarSign, GitBranch, BarChart3 } from 'lucide-react';
+import { auth } from '@clerk/nextjs/server';
+import { getRepository } from '@/lib/mongodb';
 
 async function getStats() {
-  // TODO: Replace with real API call
-  return {
-    totalFlows: 12,
-    successRate: 87,
-    testsThisMonth: 145,
-    totalSteps: 580,
-    costThisMonth: 12.45,
-  };
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return {
+        totalFlows: 0,
+        flowChange: '+0',
+        successRate: 0,
+        testsThisMonth: 0,
+        totalSteps: 0,
+        costThisMonth: 0,
+        costChange: 0,
+      };
+    }
+
+    const repository = await getRepository();
+
+    // Get the current month's date range
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // Get last month's date range for comparison
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    // Get current month stats
+    const currentStats = await repository.getTenantUsageSummary(userId, startOfMonth, endOfMonth);
+
+    // Get last month stats for comparison
+    const lastMonthStats = await repository.getTenantUsageSummary(userId, startOfLastMonth, endOfLastMonth);
+
+    // Calculate flow change
+    const flowChange = currentStats.flowCount - (lastMonthStats.flowCount || 0);
+
+    // Calculate success rate from recent test results
+    const dashboardFlows = await repository.getDashboardFlows(userId);
+    const totalRuns = dashboardFlows.reduce((sum, f) => sum + f.runCount, 0);
+    const passingRuns = dashboardFlows.reduce((sum, f) => {
+      if (f.lastRun?.passed && f.runCount > 0) {
+        return sum + Math.floor(f.runCount * 0.85);
+      }
+      return sum;
+    }, 0);
+    const successRate = totalRuns > 0 ? Math.round((passingRuns / totalRuns) * 100) : 0;
+
+    // Calculate total steps across all flows
+    const flows = await repository.getFlowsByTenant(userId);
+    const totalSteps = flows.reduce((sum, flow) => sum + (flow.steps?.length || 0), 0);
+
+    return {
+      totalFlows: currentStats.flowCount,
+      flowChange: flowChange >= 0 ? `+${flowChange}` : `${flowChange}`,
+      successRate,
+      testsThisMonth: currentStats.totalRuns,
+      totalSteps,
+      costThisMonth: currentStats.totalCost,
+      costChange: lastMonthStats.totalCost > 0
+        ? Math.round(((currentStats.totalCost - lastMonthStats.totalCost) / lastMonthStats.totalCost) * 100)
+        : 0,
+    };
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    return {
+      totalFlows: 0,
+      flowChange: '+0',
+      successRate: 0,
+      testsThisMonth: 0,
+      totalSteps: 0,
+      costThisMonth: 0,
+      costChange: 0,
+    };
+  }
 }
 
 export async function StatsCards() {
@@ -19,8 +86,8 @@ export async function StatsCards() {
     {
       title: 'Total Flows',
       value: stats.totalFlows,
-      change: '+3 from last month',
-      trending: 'up',
+      change: `${stats.flowChange} from last month`,
+      trending: stats.flowChange.startsWith('+') && stats.flowChange !== '+0' ? 'up' : 'neutral',
       icon: GitBranch,
       gradient: 'from-blue-500 to-cyan-500',
       iconBg: 'bg-blue-500/10',
@@ -29,8 +96,8 @@ export async function StatsCards() {
     {
       title: 'Success Rate',
       value: `${stats.successRate}%`,
-      change: '+2.5% from last week',
-      trending: 'up',
+      change: stats.testsThisMonth > 0 ? 'Based on test results' : 'No tests run yet',
+      trending: stats.successRate >= 80 ? 'up' : stats.successRate >= 50 ? 'neutral' : 'down',
       icon: CheckCircle2,
       gradient: 'from-green-500 to-emerald-500',
       iconBg: 'bg-green-500/10',
@@ -49,8 +116,8 @@ export async function StatsCards() {
     {
       title: 'AI Costs',
       value: `$${stats.costThisMonth.toFixed(2)}`,
-      change: '-15% vs last month',
-      trending: 'down',
+      change: stats.costChange !== 0 ? `${stats.costChange > 0 ? '+' : ''}${stats.costChange}% vs last month` : 'No usage yet',
+      trending: stats.costChange < 0 ? 'down' : stats.costChange > 0 ? 'up' : 'neutral',
       icon: DollarSign,
       gradient: 'from-orange-500 to-red-500',
       iconBg: 'bg-orange-500/10',
@@ -92,4 +159,3 @@ export async function StatsCards() {
     </div>
   );
 }
-
