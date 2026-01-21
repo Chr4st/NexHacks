@@ -87,7 +87,7 @@ export function FlowsTable() {
                   <XCircle className="h-5 w-5 text-red-600" />
                 )}
                 <div className="flex-1">
-                  <Link href={`/flows/${flow.id}`} className="font-medium hover:underline">
+                  <Link href={`/flows/${encodeURIComponent(flow.id)}`} className="font-medium hover:underline">
                     {flow.name}
                   </Link>
                   <p className="text-sm text-muted-foreground">{flow.intent}</p>
