@@ -10,11 +10,13 @@ import {
   BarChart3,
   Settings,
   Key,
+  Github,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Flows', href: '/flows', icon: GitBranch },
+  { name: 'GitHub', href: '/github/generate', icon: Github },
   { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'API Keys', href: '/api-keys', icon: Key },
