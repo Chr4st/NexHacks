@@ -2,6 +2,8 @@
 
 **AI-native UX testing platform that validates user flows with vision analysis.**
 
+***Won NexHacks 2026 under the DevTools Main Track***
+
 > Traditional E2E tests check if buttons click. FlowGuard checks if users can actually understand your UI.
 
 ## The Problem
